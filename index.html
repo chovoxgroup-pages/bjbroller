@@ -573,6 +573,30 @@ Try AI directly in your favorite apps … Use Gemini to generate drafts and refi
         }
 
         /**
+ * Updates the quantity input based on button clicks.
+ * @param {number|'clear'} action - Amount to change, or 'clear' to reset.
+ */
+function updateQuantity(action) {
+    let currentQty = parseInt(quantityInput.value) || 0;
+    let newQty;
+
+    if (action === 'clear') {
+        newQty = 1; // Reset to a sensible minimum
+    } else {
+        newQty = currentQty + action;
+    }
+
+    // Enforce min/max (1 to 10 is set in the HTML)
+    newQty = Math.max(1, Math.min(10, newQty)); 
+
+    quantityInput.value = newQty;
+    
+    // Manually trigger the input event to update the formula display
+    updateFormulaDisplay();
+}
+
+
+        /**
          * Toggles the Advantage/Disadvantage state and updates the buttons.
          * @param {'advantage'|'disadvantage'|'none'} type - The button being toggled.
          */
