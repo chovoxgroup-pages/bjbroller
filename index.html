@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Dice Roller</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the RPG feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d0d1a; /* Very dark background */
+        }
+        .dice-button {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            font-weight: bold;
+        }
+        .dice-button.selected {
+            background-color: #8B5CF6; /* Violet 500 */
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 6px 10px rgba(139, 92, 246, 0.6);
+            border: 2px solid #A78BFA; /* Violet 400 */
+        }
+        /* Style for the Advantage/Disadvantage buttons */
+        .ad-btn {
+            background-color: #4B5563; /* Gray 600 */
+            color: #D1D5DB; /* Gray 300 */
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .ad-btn.active {
+            background-color: #10B981; /* Emerald 500 for Advantage */
+            color: white;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+        .ad-btn#disadvantage-btn.active {
+            background-color: #EF4444; /* Red 500 for Disadvantage */
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+        .roll-animation {
+            animation: pulse-result 0.5s ease-in-out;
+        }
+        @keyframes pulse-result {
+            0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(196, 181, 253, 0.7); } /* Violet 300 equivalent */
+            50% { transform: scale(1.02); opacity: 1; box-shadow: 0 0 10px 10px rgba(196, 181, 253, 0.5); }
+            100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(196, 181, 253, 0); }
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .custom-roll-btn {
+            background-color: #374151; /* Gray 700 */
+            color: #d1d5db; /* Gray 300 */
+            border: 1px solid #4b5563;
+        }
+        /* Style for the history panel, to make it scrollable on small screens */
+        #history-list {
+            max-height: 200px; /* Limit height for history */
+            overflow-y: auto;
+            scrollbar-width: thin; /* Firefox */
+        }
+        #history-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        #history-list::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* Gray 600 */
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-[#0d0d1a] min-h-screen flex items-start sm:items-center justify-center py-8">
+
+    <div id="dice-roller-app" class="w-full max-w-lg bg-gray-900 border border-gray-700 shadow-2xl rounded-2xl p-6 md:p-8 mx-4">
+        <h1 class="text-3xl font-extrabold text-indigo-300 text-center mb-6 tracking-wider">
+            <span class="text-violet-500">BJB</span> Roller
+        </h1>
+
+        <!-- Dice Selection -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-700 pb-2">Select Die Type (D<span id="current-sides">20</span>)</h2>
+            <div id="dice-selector" class="grid grid-cols-4 gap-3">
+                <!-- Data attributes for sides are used to select the die -->
+                <button data-sides="4" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D4</button>
+                <button data-sides="6" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D6</button>
+                <button data-sides="8" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D8</button>
+                <button data-sides="10" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D10</button>
+                <button data-sides="12" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D12</button>
+                <button data-sides="20" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3 selected">D20</button>
+                <button data-sides="100" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D100</button>
+            </div>
+        </div>
+
+        <!-- Quantity and Modifier Inputs -->
+        <div class="mb-8">
+            <div class="flex space-x-4">
+                <!-- Quantity Controls Column -->
+                <div class="flex-1">
+                    <label for="quantity" class="block text-sm font-medium text-gray-400 mb-1">Quantity</label>
+                    <input type="number" id="quantity" value="1" min="1" max="10"
+                           class="w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500 transition duration-150 text-xl font-mono text-center mb-2"
+                           inputmode="numeric">
+                    
+                    <!-- Quantity Control Buttons -->
+                    <div id="quantity-controls" class="flex justify-between space-x-2">
+                        <button id="decrement-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
+                            -1
+                        </button>
+                        <button id="reset-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
+                            Clear
+                        </button>
+                        <button id="increment-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
+                            +1
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modifier & A/D Controls Column -->
+                <div class="flex-1">
+                    <label for="modifier" class="block text-sm font-medium text-gray-400 mb-1">Modifier</label>
+                    <input type="number" id="modifier" value="0" min="-100" max="100"
+                           class="w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500 transition duration-150 text-xl font-mono text-center mb-2"
+                           inputmode="numeric">
+                    
+                    <!-- New Advantage/Disadvantage Buttons -->
+                    <div id="advantage-disadvantage-controls" class="flex justify-between space-x-2">
+                        <button id="advantage-btn" class="ad-btn flex-1 py-2 rounded-lg text-sm font-bold shadow-md">
+                            Advantage
+                        </button>
+                        <button id="disadvantage-btn" class="ad-btn flex-1 py-2 rounded-lg text-sm font-bold shadow-md">
+                            Disadvantage
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roll Button -->
+        <button id="roll-button" class="w-full py-4 text-2xl font-black bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition duration-200 uppercase tracking-widest shadow-lg hover:shadow-violet-500/50 mb-6">
+            Roll
+        </button>
+
+        <!-- Results Display -->
+        <div id="results-panel" class="bg-gray-800 p-6 rounded-xl border-t-4 border-violet-500 transition duration-300 mb-8">
+            <h2 class="text-xl font-bold text-violet-400 mb-3 flex justify-between items-center">
+                Total Result
+                <span id="roll-formula" class="text-sm font-mono text-gray-400">1d20 + 0</span>
+            </h2>
+            <p id="roll-total" class="text-6xl font-extrabold text-indigo-300 text-center mb-3">
+                20
+            </p>
+            <p id="roll-details" class="text-sm text-gray-400 text-center font-mono">
+                Individual Rolls: (20)
+            </p>
+        </div>
+
+        <!-- Roll History Section -->
+        <div class="mt-8 pt-4 border-t border-gray-700">
+            <h2 class="text-xl font-bold text-violet-400 mb-4 flex justify-between items-center">
+                Roll History
+                <button id="clear-history-btn" class="text-sm font-semibold bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg transition duration-200 shadow-md">
+                    Clear History
+                </button>
+            </h2>
+            <div id="history-list" class="space-y-2 p-2 bg-gray-950 rounded-lg">
+                <!-- Roll history items will be injected here -->
+            </div>
+        </div>
+        
+        <!-- Custom Rolls Section -->
+        <div class="mt-8 pt-4 border-t border-gray-700">
+            <h2 class="text-xl font-bold text-violet-400 mb-4 flex justify-between items-center">
+                Custom Rolls
+                <button id="add-custom-roll-btn" class="text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded-lg transition duration-200 shadow-md">
+                    + Add New
+                </button>
+            </h2>
+
+            <div id="custom-rolls-list" class="space-y-3">
+                <!-- Custom roll buttons will be injected here -->
+            </div>
+            <p id="user-id-display" class="text-xs text-gray-600 mt-4 text-center">User ID: N/A (Loading...)</p>
+        </div>
+    </div>
+
+    <!-- Modal for Adding/Error Messages -->
+    <div id="app-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center p-4 z-50">
+        <div id="modal-content" class="bg-gray-800 rounded-xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
+            <!-- Modal content injected by JS -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, onSnapshot, collection, query, addDoc, deleteDoc, doc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global Setup ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+        let db;
+        let auth;
+        let userId = 'N/A';
+        let CUSTOM_ROLLS_PATH = '';
+        const CUSTOM_ROLLS_COLLECTION = 'custom_rolls';
+        const HISTORY_STORAGE_KEY = 'rpgRollHistory';
+
+        // Set Firebase logging for debug
+        setLogLevel('Debug');
+        
+        // --- State Variables ---
+        let currentSides = 20;
+        let isAdvantage = false;
+        let isDisadvantage = false;
+
+        // --- DOM Elements ---
+        const diceSelector = document.getElementById('dice-selector');
+        const rollButton = document.getElementById('roll-button');
+        const quantityInput = document.getElementById('quantity');
+        const modifierInput = document.getElementById('modifier');
+        const rollTotal = document.getElementById('roll-total');
+        const rollDetails = document.getElementById('roll-details');
+        const rollFormula = document.getElementById('roll-formula');
+        const resultsPanel = document.getElementById('results-panel');
+        const currentSidesDisplay = document.getElementById('current-sides');
+        const customRollsList = document.getElementById('custom-rolls-list');
+        const addCustomRollBtn = document.getElementById('add-custom-roll-btn');
+        const appModal = document.getElementById('app-modal');
+        const modalContent = document.getElementById('modal-content');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+        // Quantity Control Buttons
+        const decrementQtyBtn = document.getElementById('decrement-qty');
+        const resetQtyBtn = document.getElementById('reset-qty');
+        const incrementQtyBtn = document.getElementById('increment-qty');
+
+        // Advantage/Disadvantage Buttons
+        const advantageBtn = document.getElementById('advantage-btn');
+        const disadvantageBtn = document.getElementById('disadvantage-btn');
+
+
+        // --- Custom Modal Functionality (Replaces alert/confirm) ---
+
+        /** Shows the custom roll creation modal. */
+        function showCustomRollModal() {
+            if (!db) {
+                showMessageModal("Persistence Unavailable", "Cannot add custom rolls. Firebase failed to initialize.");
+                return;
+            }
+            modalContent.innerHTML = `
+                <h3 class="text-2xl font-bold text-indigo-300 mb-4">Add Custom Roll</h3>
+                
+                <label for="roll-name-input" class="block text-sm font-medium text-gray-400 mb-1">Name (e.g., Fireball Damage)</label>
+                <input type="text" id="roll-name-input" placeholder="e.g., Attack Roll"
+                       class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500">
+
+                <label for="roll-formula-input" class="block text-sm font-medium text-gray-400 mb-1">Formula (e.g., 2d6+3, 4d6dl1)</label>
+                <input type="text" id="roll-formula-input" placeholder="e.g., 2d8+5"
+                       class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500">
+                <p class="text-xs text-gray-500 mb-4">Format: <span class="font-mono text-violet-300">[Qty]d[Sides]</span><span class="text-gray-400">[dl/dh][Count]</span><span class="font-mono text-violet-300">[+/-Mod]</span>. Example: 4d6dl1+3</p>
+
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-custom-roll-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
+                    <button id="save-custom-roll-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Save Roll</button>
+                </div>
+            `;
+            appModal.style.display = 'flex';
+
+            document.getElementById('cancel-custom-roll-btn').onclick = () => appModal.style.display = 'none';
+            document.getElementById('save-custom-roll-btn').onclick = saveCustomRoll;
+        }
+
+        /**
+         * Displays a simple message (used for errors/confirmation).
+         * @param {string} title
+         * @param {string} message
+         */
+        function showMessageModal(title, message) {
+            modalContent.innerHTML = `
+                <h3 class="text-2xl font-bold text-violet-400 mb-4">${title}</h3>
+                <p class="text-gray-300 mb-6">${message}</p>
+                <div class="flex justify-end">
+                    <button id="close-modal-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Close</button>
+                </div>
+            `;
+            appModal.style.display = 'flex';
+            document.getElementById('close-modal-btn').onclick = () => appModal.style.display = 'none';
+        }
+
+        // --- Roll History Management (Local Storage) ---
+
+        /** Loads roll history from local storage. */
+        function loadHistory() {
+            try {
+                const historyJson = localStorage.getItem(HISTORY_STORAGE_KEY);
+                return historyJson ? JSON.parse(historyJson) : [];
+            } catch (e) {
+                console.error("Error loading history from localStorage:", e);
+                return [];
+            }
+        }
+
+        /** Saves roll history to local storage. */
+        function saveHistory(history) {
+            try {
+                // Keep history limited to the last 20 rolls for performance
+                const limitedHistory = history.slice(0, 20); 
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
+            } catch (e) {
+                console.error("Error saving history to localStorage:", e);
+            }
+        }
+
+        /** Adds a new roll result to the history and re-renders. */
+        function addRollToHistory(rollData) {
+            const history = loadHistory();
+            
+            // Format time as HH:MM:SS
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0];
+
+            history.unshift({
+                id: Date.now(), // Unique ID for key
+                time: timeString,
+                formula: rollData.formula,
+                total: rollData.total,
+                details: rollData.details
+            });
+            
+            saveHistory(history);
+            renderHistory(history);
+        }
+
+        /** Renders the roll history list. */
+        function renderHistory(history) {
+            historyList.innerHTML = '';
+            if (history.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-600 text-center py-4 text-sm">No rolls recorded yet.</p>';
+                return;
+            }
+
+            history.forEach(roll => {
+                const item = document.createElement('div');
+                item.className = 'flex flex-col p-2 bg-gray-800 rounded-md border border-gray-700 hover:bg-gray-700 transition duration-100';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-violet-400 font-bold text-lg">${roll.total}</span>
+                        <span class="text-gray-500 text-xs">${roll.time}</span>
+                    </div>
+                    <p class="text-gray-400 text-sm font-mono mt-0.5">${roll.formula}</p>
+                    <p class="text-xs text-gray-500 mt-1">${roll.details}</p>
+                `;
+                historyList.appendChild(item);
+            });
+        }
+
+        // --- Roll Logic Functions (Synchronous) ---
+
+        /**
+         * Parses a roll string (e.g., "4d6dl1+5") into its components.
+         * @param {string} formula - The dice formula string.
+         * @returns {Object|null} An object containing roll components, or null if invalid.
+         */
+        function parseRollString(formula) {
+            // Regex: (Qty)d(Sides)(dl/dh)(Count)?([+-]Modifier)?
+            const regex = /(\d+)d(\d+)(?:(dl|dh)(\d+))?([+-]\d+)?/i;
+            const match = formula.match(regex);
+
+            if (!match) return null;
+
+            let [fullMatch, quantity, sides, dropType, dropCount, modifier] = match;
+
+            return {
+                quantity: parseInt(quantity),
+                sides: parseInt(sides),
+                dropType: dropType ? dropType.toLowerCase() : null,
+                dropCount: dropCount ? parseInt(dropCount) : 0,
+                modifier: modifier ? parseInt(modifier) : 0,
+                formula: fullMatch // Store the matched part of the string
+            };
+        }
+
+        /**
+         * Performs the actual dice roll, handling drop/keep logic.
+         * NOTE: This function is primarily used for custom rolls (N d X)
+         * @param {Object} rollData - Components from parseRollString.
+         */
+        function executeComplexRoll(rollData) {
+            const { quantity, sides, dropType, dropCount, modifier, formula } = rollData;
+
+            const rolls = [];
+            for (let i = 0; i < quantity; i++) {
+                rolls.push(Math.floor(Math.random() * sides) + 1);
+            }
+
+            // 1. Sort the rolls for drop/keep logic
+            const sortedRolls = [...rolls].sort((a, b) => a - b);
+            let keptRolls = [...rolls];
+            let droppedRolls = [];
+
+            if (dropCount > 0) {
+                if (dropType === 'dl') { // Drop Lowest (dl)
+                    droppedRolls = sortedRolls.slice(0, dropCount);
+                    keptRolls = sortedRolls.slice(dropCount);
+                } else if (dropType === 'dh') { // Drop Highest (dh)
+                    droppedRolls = sortedRolls.slice(quantity - dropCount);
+                    keptRolls = sortedRolls.slice(0, quantity - dropCount);
+                }
+            }
+
+            // 2. Calculate the total
+            const sumOfKeptRolls = keptRolls.reduce((sum, roll) => sum + roll, 0);
+            const total = sumOfKeptRolls + modifier;
+
+            // 3. Format result details
+            let detailsText = `Kept Rolls: (${keptRolls.join(', ')})`;
+            if (droppedRolls.length > 0) {
+                detailsText += ` | Dropped: (${droppedRolls.join(', ')})`;
+            }
+            if (modifier !== 0) {
+                detailsText += ` | ${modifier > 0 ? '+' : ''}${modifier} (Mod)`;
+            }
+            
+            // 4. Update the UI
+            rollTotal.textContent = total;
+            rollDetails.textContent = detailsText;
+            rollFormula.textContent = formula;
+
+            // 5. Add to history
+            addRollToHistory({ formula, total, details: detailsText });
+
+            // 6. Animation Feedback
+            resultsPanel.classList.remove('roll-animation');
+            void resultsPanel.offsetWidth;
+            resultsPanel.classList.add('roll-animation');
+        }
+
+        /** Handles the click on a custom roll button. */
+        function handleCustomRollClick(formula) {
+            // Disable Advantage/Disadvantage when using a custom roll
+            if (isAdvantage || isDisadvantage) {
+                toggleAdvantageDisadvantage('none');
+            }
+            const rollData = parseRollString(formula);
+            if (rollData) {
+                rollData.formula = formula; 
+                executeComplexRoll(rollData);
+            } else {
+                showMessageModal("Invalid Formula", `Could not parse the roll formula: ${formula}. Please check the format (e.g., 2d8+5 or 4d6dl1).`);
+            }
+        }
+
+        /** Updates the formula display based on standard roller inputs. */
+        function updateFormulaDisplay() {
+            const quantity = parseInt(quantityInput.value) || 1;
+            const modifier = parseInt(modifierInput.value) || 0;
+            let modString = '';
+            
+            if (modifier > 0) {
+                modString = ` + ${modifier}`;
+            } else if (modifier < 0) {
+                modString = ` ${modifier}`;
+            }
+
+            let prefix = '';
+            if (isAdvantage) {
+                prefix = ' (Advantage)';
+            } else if (isDisadvantage) {
+                prefix = ' (Disadvantage)';
+            }
+            
+            const qtyDisplay = (isAdvantage || isDisadvantage) ? 1 : quantity;
+
+            rollFormula.textContent = `${qtyDisplay}d${currentSides}${prefix}${modString}`;
+        }
+
+        /** Performs the standard dice roll, handling A/D state. */
+        function performStandardRoll() {
+            const quantity = parseInt(quantityInput.value) || 1;
+            const modifier = parseInt(modifierInput.value) || 0;
+
+            if (isAdvantage || isDisadvantage) {
+                // Advantage/Disadvantage Logic (forces quantity to 1 for the roll)
+                
+                if (quantity > 1) {
+                    showMessageModal("A/D Conflict", "Advantage/Disadvantage is active, so only the first die is rolled. Please disable A/D to roll multiple dice.");
+                    // Continue, but treat as a single roll with A/D
+                }
+                
+                // 1. Roll twice
+                const roll1 = Math.floor(Math.random() * currentSides) + 1;
+                const roll2 = Math.floor(Math.random() * currentSides) + 1;
+                
+                let keptRoll;
+                let rollType;
+                
+                if (isAdvantage) {
+                    keptRoll = Math.max(roll1, roll2);
+                    rollType = "Advantage";
+                } else { // isDisadvantage
+                    keptRoll = Math.min(roll1, roll2);
+                    rollType = "Disadvantage";
+                }
+
+                const total = keptRoll + modifier;
+
+                // Format strings for display and history
+                let modString = modifier !== 0 ? (modifier > 0 ? '+' : '') + modifier : '';
+                const formula = `1d${currentSides} (${rollType})${modString}`;
+                const detailsText = `Rolled: (${roll1}, ${roll2}) | Kept: (${keptRoll}) | Mod: ${modifier}`;
+                
+                // 2. Update UI and History
+                rollTotal.textContent = total;
+                rollDetails.textContent = detailsText;
+                rollFormula.textContent = formula;
+                addRollToHistory({ formula, total, details: detailsText });
+
+
+            } else {
+                // Standard Roll Logic (uses quantity input)
+                const formula = `${quantity}d${currentSides}${modifier >= 0 ? '+' : ''}${modifier}`;
+
+                const rollData = {
+                    quantity,
+                    sides: currentSides,
+                    dropType: null,
+                    dropCount: 0,
+                    modifier,
+                    formula: formula
+                };
+
+                executeComplexRoll(rollData);
+            }
+            
+            // 3. Animation Feedback (Applies to both paths)
+            resultsPanel.classList.remove('roll-animation');
+            void resultsPanel.offsetWidth;
+            resultsPanel.classList.add('roll-animation');
+        }
+
+        /**
+         * Updates the quantity input value based on control buttons.
+         * @param {number|string} delta - The change (+1, -1) or 'clear' to reset to min (1).
+         */
+        function updateQuantity(delta) {
+            let currentQty = parseInt(quantityInput.value) || 1;
+            const minQty = parseInt(quantityInput.min) || 1;
+            const maxQty = parseInt(quantityInput.max) || 10;
+
+            if (delta === 'clear') {
+                currentQty = minQty; 
+            } else {
+                currentQty += delta;
+            }
+
+            // Enforce min/max constraints
+            currentQty = Math.max(minQty, Math.min(maxQty, currentQty));
+
+            quantityInput.value = currentQty;
+            updateFormulaDisplay();
+        }
+
+        /**
+         * Toggles the Advantage/Disadvantage state and updates the buttons.
+         * @param {'advantage'|'disadvantage'|'none'} type - The button being toggled.
+         */
+        function toggleAdvantageDisadvantage(type) {
+            if (type === 'advantage') {
+                isAdvantage = !isAdvantage;
+                if (isAdvantage) isDisadvantage = false;
+            } else if (type === 'disadvantage') {
+                isDisadvantage = !isDisadvantage;
+                if (isDisadvantage) isAdvantage = false;
+            } else {
+                isAdvantage = false;
+                isDisadvantage = false;
+            }
+
+            // Update button styles
+            advantageBtn.classList.toggle('active', isAdvantage);
+            disadvantageBtn.classList.toggle('active', isDisadvantage);
+
+            // Update the formula display to reflect the A/D status
+            updateFormulaDisplay();
+        }
+
+        // --- Custom Roll Persistence (Firestore) ---
+
+        /** Saves a new custom roll to Firestore. */
+        async function saveCustomRoll() {
+            const nameInput = document.getElementById('roll-name-input');
+            const formulaInput = document.getElementById('roll-formula-input');
+            const name = nameInput.value.trim();
+            const formula = formulaInput.value.trim().toLowerCase();
+
+            if (!db || !CUSTOM_ROLLS_PATH) {
+                showMessageModal("Persistence Error", "Database is not initialized. Cannot save roll.");
+                return;
+            }
+
+            if (!name || !formula) {
+                showMessageModal("Input Required", "Please provide both a name and a formula for the custom roll.");
+                return;
+            }
+
+            const rollData = parseRollString(formula);
+            if (!rollData) {
+                showMessageModal("Invalid Formula", "The formula could not be parsed. Please use the format [Qty]d[Sides][dl/dh][Count][+/-Mod].");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, CUSTOM_ROLLS_PATH), {
+                    name: name,
+                    formula: formula,
+                    createdAt: new Date()
+                });
+                appModal.style.display = 'none'; // Close modal on success
+            } catch (error) {
+                console.error("Error saving custom roll:", error);
+                showMessageModal("Save Error", "Failed to save the custom roll. Check console for details.");
+            }
+        }
+
+        /** Deletes a custom roll from Firestore. */
+        async function deleteCustomRoll(docId) {
+            if (!db || !CUSTOM_ROLLS_PATH) {
+                showMessageModal("Persistence Error", "Database is not initialized. Cannot delete roll.");
+                return;
+            }
+            try {
+                await deleteDoc(doc(db, CUSTOM_ROLLS_PATH, docId));
+            } catch (error) {
+                console.error("Error deleting custom roll:", error);
+                showMessageModal("Delete Error", "Failed to delete the custom roll. Check console for details.");
+            }
+        }
+        
+        /**
+         * Renders the list of custom rolls from the Firestore snapshot.
+         * @param {Array<Object>} rolls - Array of roll objects ({id, name, formula}).
+         */
+        function renderCustomRolls(rolls) {
+            customRollsList.innerHTML = ''; 
+            if (rolls.length === 0) {
+                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">No custom rolls saved yet. Add one!</p>';
+                return;
+            }
+
+            rolls.forEach(roll => {
+                const rollDiv = document.createElement('div');
+                rollDiv.className = 'flex items-center justify-between p-3 rounded-lg custom-roll-btn hover:bg-gray-600 transition duration-150 shadow-md';
+                
+                rollDiv.innerHTML = `
+                    <div class="flex flex-col text-left overflow-hidden">
+                        <span class="text-sm font-semibold text-white truncate">${roll.name}</span>
+                        <span class="text-xs font-mono text-gray-400">${roll.formula}</span>
+                    </div>
+                    <div class="flex space-x-2 items-center">
+                        <button class="roll-btn text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded-md" data-formula="${roll.formula}">
+                            ROLL
+                        </button>
+                        <button class="delete-btn text-sm text-gray-400 hover:text-violet-500 transition duration-150" data-id="${roll.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                customRollsList.appendChild(rollDiv);
+
+                // Attach event listeners to the dynamically created buttons
+                rollDiv.querySelector('.roll-btn').addEventListener('click', (e) => {
+                    handleCustomRollClick(e.currentTarget.dataset.formula);
+                });
+                rollDiv.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    // Quick modal confirmation before deleting
+                    const docId = e.currentTarget.dataset.id;
+                    showMessageModal("Confirm Delete", `Are you sure you want to delete the roll: "${roll.name}"?`);
+                    
+                    // Replace the generic 'Close' button with confirm/cancel
+                    modalContent.querySelector('#close-modal-btn').remove();
+                    
+                    const deleteConfirmDiv = document.createElement('div');
+                    deleteConfirmDiv.className = 'flex justify-end space-x-3';
+                    deleteConfirmDiv.innerHTML = `
+                        <button id="cancel-delete-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
+                        <button id="confirm-delete-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Delete</button>
+                    `;
+                    modalContent.appendChild(deleteConfirmDiv);
+
+                    document.getElementById('cancel-delete-btn').onclick = () => appModal.style.display = 'none';
+                    document.getElementById('confirm-delete-btn').onclick = () => {
+                        deleteCustomRoll(docId);
+                        appModal.style.display = 'none';
+                    };
+                });
+            });
+        }
+        
+        /** Initializes Firebase and sets up the live listener for custom rolls. */
+        async function initFirebaseAndRolls() {
+            customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Connecting to persistence...</p>';
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                CUSTOM_ROLLS_PATH = `/artifacts/${appId}/users/${userId}/${CUSTOM_ROLLS_COLLECTION}`;
+                userIdDisplay.textContent = `User ID: ${userId}`;
+                
+                // Set up the real-time listener *after* successful auth
+                const rollsQuery = query(collection(db, CUSTOM_ROLLS_PATH));
+                onSnapshot(rollsQuery, (snapshot) => {
+                    const rolls = [];
+                    snapshot.forEach((doc) => {
+                        rolls.push({ id: doc.id, ...doc.data() });
+                    });
+                    // Sort by createdAt time if available, otherwise by name
+                    rolls.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0) || a.name.localeCompare(b.name));
+                    
+                    renderCustomRolls(rolls); 
+                }, (error) => {
+                    console.error("Firestore Listener Error:", error);
+                    customRollsList.innerHTML = '<p class="text-violet-500 text-center py-4">Error loading custom rolls. Please check the console.</p>';
+                });
+
+            } catch (e) {
+                console.error("Firebase Initialization Failed:", e);
+                userIdDisplay.textContent = `User ID: N/A (Error)`;
+                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Persistence not available. Standard roller is operational.</p>';
+                // Ensure Add New button is disabled or gives feedback if persistence failed
+                addCustomRollBtn.onclick = () => showMessageModal("Persistence Error", "Custom Rolls require a successful database connection.");
+                addCustomRollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // --- Event Listener Setup ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. Synchronous UI Setup ---
+            
+            // Initialize the standard roll display
+            rollTotal.textContent = 20;
+            rollDetails.textContent = "Individual Rolls: (20)";
+            updateFormulaDisplay();
+            
+            // Load and render history immediately
+            renderHistory(loadHistory());
+
+            // Standard Roll Button Click (Always available immediately)
+            rollButton.addEventListener('click', performStandardRoll);
+
+            // Die Selector Buttons (Always available immediately)
+            diceSelector.addEventListener('click', (event) => {
+                const button = event.target.closest('.dice-button');
+                if (!button) return;
+
+                document.querySelectorAll('.dice-button').forEach(btn => {
+                    btn.classList.remove('selected', 'bg-violet-500'); 
+                    btn.classList.add('bg-gray-700', 'text-gray-300');
+                });
+
+                currentSides = parseInt(button.dataset.sides);
+                button.classList.add('selected');
+                currentSidesDisplay.textContent = currentSides;
+                updateFormulaDisplay();
+            });
+
+            // Input Change Handlers
+            quantityInput.addEventListener('input', updateFormulaDisplay);
+            modifierInput.addEventListener('input', updateFormulaDisplay);
+
+            // Quantity Control Buttons
+            decrementQtyBtn.addEventListener('click', () => updateQuantity(-1));
+            resetQtyBtn.addEventListener('click', () => updateQuantity('clear'));
+            incrementQtyBtn.addEventListener('click', () => updateQuantity(1));
+            
+            // Advantage/Disadvantage Control Buttons
+            advantageBtn.addEventListener('click', () => toggleAdvantageDisadvantage('advantage'));
+            disadvantageBtn.addEventListener('click', () => toggleAdvantageDisadvantage('disadvantage'));
+
+
+            // Custom Roll Button
+            addCustomRollBtn.addEventListener('click', showCustomRollModal);
+
+            // Clear History Button
+            clearHistoryBtn.addEventListener('click', () => {
+                showMessageModal("Confirm Clear History", "Are you sure you want to clear all roll history for this browser?");
+                
+                // Replace the generic 'Close' button with confirm/cancel
+                modalContent.querySelector('#close-modal-btn').remove();
+                
+                const clearConfirmDiv = document.createElement('div');
+                clearConfirmDiv.className = 'flex justify-end space-x-3';
+                clearConfirmDiv.innerHTML = `
+                    <button id="cancel-clear-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
+                    <button id="confirm-clear-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Clear</button>
+                `;
+                modalContent.appendChild(clearConfirmDiv);
+
+                document.getElementById('cancel-clear-btn').onclick = () => appModal.style.display = 'none';
+                document.getElementById('confirm-clear-btn').onclick = () => {
+                    localStorage.removeItem(HISTORY_STORAGE_KEY);
+                    renderHistory([]);
+                    appModal.style.display = 'none';
+                };
+            });
+        
+            // --- 2. Asynchronous Persistence Setup ---
+            initFirebaseAndRolls();
+        });
+    </script>
+</body>
+</html>
+
