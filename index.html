@@ -1,3 +1,4 @@
+Try AI directly in your favorite apps … Use Gemini to generate drafts and refine content, plus get Gemini Pro with access to Google's next-gen AI for $19.99 $0 for 1 month
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -199,9 +200,35 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, onSnapshot, collection, query, addDoc, deleteDoc, doc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Global Setup ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        // =========================================================================
+        // --- IMPORTANT: EXTERNAL HOSTING CONFIGURATION ---
+        //
+        // This configuration was taken directly from your Firebase Project Settings.
+        // It enables the Custom Rolls feature when hosted on GitHub Pages.
+        // 
+        // =========================================================================
+        const STATIC_APP_ID = 'rpg-dice-roller-github-public'; // <-- STATIC ID FOR YOUR PROJECT
+        
+        // Use the Canvas environment variables if they exist, otherwise use fallbacks for external hosting
+        const appId = typeof __app_id !== 'undefined' ? __app_id : STATIC_APP_ID;
+        
+        // PASTE YOUR COPIED CONFIGURATION HERE:
+        const EXTERNAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyA70MT-zQ_U1Z570vuuk1CGGCvC5CtW8uA",
+            authDomain: "bjbroller-b1e57.firebaseapp.com",
+            projectId: "bjbroller-b1e57",
+            storageBucket: "bjbroller-b1e57.appspot.com",
+            messagingSenderId: "1061781164673",
+            appId: "1:1061781164673:web:d7be4c193e8f9b2db9b380"
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                               ? JSON.parse(__firebase_config) 
+                               : EXTERNAL_FIREBASE_CONFIG;
+                               
+        const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        // =========================================================================
+
 
         let db;
         let auth;
@@ -546,28 +573,6 @@
         }
 
         /**
-         * Updates the quantity input value based on control buttons.
-         * @param {number|string} delta - The change (+1, -1) or 'clear' to reset to min (1).
-         */
-        function updateQuantity(delta) {
-            let currentQty = parseInt(quantityInput.value) || 1;
-            const minQty = parseInt(quantityInput.min) || 1;
-            const maxQty = parseInt(quantityInput.max) || 10;
-
-            if (delta === 'clear') {
-                currentQty = minQty; 
-            } else {
-                currentQty += delta;
-            }
-
-            // Enforce min/max constraints
-            currentQty = Math.max(minQty, Math.min(maxQty, currentQty));
-
-            quantityInput.value = currentQty;
-            updateFormulaDisplay();
-        }
-
-        /**
          * Toggles the Advantage/Disadvantage state and updates the buttons.
          * @param {'advantage'|'disadvantage'|'none'} type - The button being toggled.
          */
@@ -600,8 +605,9 @@
             const name = nameInput.value.trim();
             const formula = formulaInput.value.trim().toLowerCase();
 
-            if (!db || !CUSTOM_ROLLS_PATH) {
-                showMessageModal("Persistence Error", "Database is not initialized. Cannot save roll.");
+            // Check if Firebase was initialized using the EXTERNAL_FIREBASE_CONFIG
+            if (!db || !CUSTOM_ROLLS_PATH || !firebaseConfig.projectId) {
+                showMessageModal("Persistence Error", "Database is not initialized. Please ensure your Firebase configuration is correct.");
                 return;
             }
 
@@ -707,6 +713,16 @@
         
         /** Initializes Firebase and sets up the live listener for custom rolls. */
         async function initFirebaseAndRolls() {
+            // Check if a configuration was provided (either Canvas or external)
+            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId) {
+                console.log("Firebase not initialized: No configuration available.");
+                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Persistence not available. Standard roller is operational.</p>';
+                addCustomRollBtn.onclick = () => showMessageModal("Persistence Error", "Custom Rolls require a Firebase connection. Please update the configuration in the code.");
+                addCustomRollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                userIdDisplay.textContent = `User ID: N/A (Persistence Disabled)`;
+                return;
+            }
+
             customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Connecting to persistence...</p>';
 
             try {
@@ -714,14 +730,19 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                // Check for the secure token. If it's missing, use anonymous sign-in.
+                if (__initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
                 
+                // Get the user ID (either from auth or a random one for unauth)
                 userId = auth.currentUser?.uid || crypto.randomUUID();
+                
+                // Construct the path for *private* user data
                 CUSTOM_ROLLS_PATH = `/artifacts/${appId}/users/${userId}/${CUSTOM_ROLLS_COLLECTION}`;
+                
                 userIdDisplay.textContent = `User ID: ${userId}`;
                 
                 // Set up the real-time listener *after* successful auth
@@ -737,14 +758,13 @@
                     renderCustomRolls(rolls); 
                 }, (error) => {
                     console.error("Firestore Listener Error:", error);
-                    customRollsList.innerHTML = '<p class="text-violet-500 text-center py-4">Error loading custom rolls. Please check the console.</p>';
+                    customRollsList.innerHTML = '<p class="text-violet-500 text-center py-4">Error loading custom rolls. Check console for rules/connection error.</p>';
                 });
 
             } catch (e) {
                 console.error("Firebase Initialization Failed:", e);
                 userIdDisplay.textContent = `User ID: N/A (Error)`;
                 customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Persistence not available. Standard roller is operational.</p>';
-                // Ensure Add New button is disabled or gives feedback if persistence failed
                 addCustomRollBtn.onclick = () => showMessageModal("Persistence Error", "Custom Rolls require a successful database connection.");
                 addCustomRollBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
@@ -829,4 +849,5 @@
     </script>
 </body>
 </html>
+
 
