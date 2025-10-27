@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BJB Roller: RPG Dice</title>
+    <!-- PWA Manifest Link - Tells the browser where to find the icon and app configuration -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Theme color for Android browser tab -->
+    <meta name="theme-color" content="#4f46e5"> 
+    <!-- Apple Touch Icon (Used by iOS when adding to home screen) -->
+    <link rel="apple-touch-icon" href="d20-icon-192.png">
+
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for the optional sound effect -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.71/build/Tone.js"></script>
+    <style>
+        /* Custom Styles for Theme */
+        :root {
+            --primary-color: #a78bfa; /* Purple-400 */
+            --secondary-color: #4f46e5; /* Indigo-600 */
+            --dark-bg: #111827; /* Gray-900 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #f3f4f6;
+        }
+        .dice-button, .custom-roll-button {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+            transform: translateY(0);
+        }
+        .dice-button:hover, .custom-roll-button:hover {
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.6);
+            transform: translateY(-2px);
+        }
+        .dice-button:active, .custom-roll-button:active {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex items-start justify-center">
+    <div class="w-full max-w-4xl space-y-8">
+
+        <!-- Header and Main Result -->
+        <header class="text-center pt-8 pb-4">
+            <h1 class="text-5xl font-extrabold text-white tracking-tight">
+                BJB Roller
+            </h1>
+            <p class="text-purple-400 mt-2 text-lg">Roll the bones of destiny</p>
+        </header>
+
+        <!-- Main Roll Result Display -->
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-center border-b-4 border-purple-600">
+            <p id="roll-descriptor" class="text-xl text-gray-400 mb-2 font-medium">Click a die or custom roll to begin</p>
+            <div id="main-result" class="text-8xl font-black text-purple-400">
+                --
+            </div>
+            <div id="status-message" class="h-6 mt-2 text-xl font-semibold"></div>
+        </div>
+
+        <!-- Custom Rolls Section -->
+        <section class="bg-gray-800 p-6 rounded-xl shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-white border-b border-gray-700 pb-2">Custom Rolls (Saved in Browser)</h2>
+            
+            <!-- Custom Roll Input Form -->
+            <div class="grid grid-cols-5 gap-4 mb-4 items-end">
+                <div class="col-span-2">
+                    <label for="custom-name" class="block text-sm font-medium text-gray-300 mb-1">Name (e.g., "Attack Roll")</label>
+                    <input type="text" id="custom-name" placeholder="Spell Name" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-indigo-500 focus:ring-indigo-400 focus:border-indigo-400 shadow-inner" />
+                </div>
+                <div class="col-span-2">
+                    <label for="custom-expression" class="block text-sm font-medium text-gray-300 mb-1">Expression (e.g., 8d6+4)</label>
+                    <input type="text" id="custom-expression" placeholder="e.g., 2d20-1" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-indigo-500 focus:ring-indigo-400 focus:border-indigo-400 shadow-inner" />
+                </div>
+                <button onclick="saveCustomRoll()" class="col-span-1 h-[50px] bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150">
+                    Save
+                </button>
+            </div>
+            
+            <!-- Custom Roll Buttons Container -->
+            <div id="custom-rolls-container" class="flex flex-wrap gap-3 p-2 border border-dashed border-gray-700 rounded-lg min-h-[50px]">
+                <p class="text-gray-400 text-sm italic" id="no-custom-rolls">No custom rolls saved yet.</p>
+            </div>
+        </section>
+
+        <!-- Control Panel for Dice Count and Modifier -->
+        <section class="bg-gray-800 p-6 rounded-xl shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-white border-b border-gray-700 pb-2">Roll Configuration (For Standard Dice)</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="num-dice" class="block text-sm font-medium text-gray-300 mb-1">Number of Dice (N)</label>
+                    <input type="number" id="num-dice" value="1" min="1" max="100" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-purple-500 focus:ring-purple-400 focus:border-purple-400 shadow-inner" />
+                </div>
+                <div>
+                    <label for="modifier" class="block text-sm font-medium text-gray-300 mb-1">Modifier (+/-)</label>
+                    <input type="number" id="modifier" value="0" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-purple-500 focus:ring-purple-400 focus:border-purple-400 shadow-inner" />
+                </div>
+            </div>
+        </section>
+        
+        <!-- Standard Dice Selection Buttons -->
+        <section class="bg-gray-800 p-6 rounded-xl shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-white border-b border-gray-700 pb-2">Standard Dice Type</h2>
+            <div id="dice-container" class="grid grid-cols-4 sm:grid-cols-7 gap-4">
+                <!-- Standard Dice buttons will be rendered here by JS -->
+            </div>
+        </section>
+
+        <!-- Roll History Section -->
+        <section class="bg-gray-800 p-6 rounded-xl shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-white border-b border-gray-700 pb-2 flex justify-between items-center">
+                Roll History
+                <button onclick="clearHistory()" class="text-sm px-3 py-1 bg-red-700 hover:bg-red-600 rounded-lg text-white font-medium transition duration-150">Clear</button>
+            </h2>
+            <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                <!-- History items will be inserted here -->
+                <p class="text-gray-400 text-center py-4 text-sm" id="initial-history-msg">History is empty.</p>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        // Global variables and configuration
+        const DICE_TYPES = [4, 6, 8, 10, 12, 20, 100];
+        const historyList = document.getElementById('history-list');
+        const mainResult = document.getElementById('main-result');
+        const rollDescriptor = document.getElementById('roll-descriptor');
+        const statusMessage = document.getElementById('status-message');
+        const diceContainer = document.getElementById('dice-container');
+        const customRollsContainer = document.getElementById('custom-rolls-container');
+        const initialHistoryMsg = document.getElementById('initial-history-msg');
+        const numDiceInput = document.getElementById('num-dice');
+        const modifierInput = document.getElementById('modifier');
+        const customNameInput = document.getElementById('custom-name');
+        const customExpressionInput = document.getElementById('custom-expression');
+
+        let synth = null; // Tone.js Synthesizer
+
+        // --- Tone.js Setup ---
+        function setupAudio() {
+            try {
+                synth = new Tone.NoiseSynth({
+                    noise: { type: "brown" },
+                    envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+                document.body.addEventListener('click', () => {
+                    if (Tone.context.state !== 'running') { Tone.context.resume(); }
+                }, { once: true });
+            } catch (e) {
+                console.error("Tone.js failed to initialize:", e);
+                synth = null;
+            }
+        }
+        setupAudio();
+
+        function playRollSound() {
+            if (synth) {
+                synth.triggerAttackRelease("16n", Tone.now());
+                synth.triggerAttackRelease("32n", Tone.now() + 0.05);
+            }
+        }
+
+        // --- Custom Roll Storage & Management ---
+        const LOCAL_STORAGE_KEY = 'arcaneRollerCustomRolls'; // Key remains the same for continuity
+
+        function loadCustomRolls() {
+            try {
+                const json = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return json ? JSON.parse(json) : [];
+            } catch (e) {
+                console.error("Error loading custom rolls from localStorage:", e);
+                return [];
+            }
+        }
+
+        function saveCustomRolls(rolls) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(rolls));
+                renderCustomRollButtons();
+            } catch (e) {
+                console.error("Error saving custom rolls to localStorage:", e);
+            }
+        }
+        
+        window.saveCustomRoll = function() {
+            const name = customNameInput.value.trim();
+            const expression = customExpressionInput.value.trim().toLowerCase();
+
+            if (!name || !expression) {
+                console.error("Both Name and Expression are required.");
+                return;
+            }
+
+            if (!parseExpression(expression)) {
+                console.error("Invalid expression format. Use Ndx[+/-M], e.g., 3d6+2 or 1d20.");
+                return;
+            }
+
+            const rolls = loadCustomRolls();
+            rolls.push({ name, expression });
+            saveCustomRolls(rolls);
+            
+            customNameInput.value = '';
+            customExpressionInput.value = '';
+        }
+        
+        window.deleteCustomRoll = function(index) {
+            let rolls = loadCustomRolls();
+            if (index >= 0 && index < rolls.length) {
+                rolls.splice(index, 1);
+                saveCustomRolls(rolls);
+            }
+        }
+
+        // --- Core Dice Logic ---
+
+        // Function to parse a string like "3d8+5" or "1d20-1"
+        function parseExpression(expression) {
+            // Regex: (N dice) d (X sides) ( [+/-] M modifier, optional)
+            const match = expression.match(/(\d+)d(\d+)([+-]\d+)?/i);
+            if (!match) return null;
+
+            const numDice = parseInt(match[1]);
+            const sides = parseInt(match[2]);
+            let modifier = 0;
+
+            if (match[3]) {
+                modifier = parseInt(match[3].replace(/\s/g, ''));
+            }
+            
+            // Basic validation
+            if (numDice < 1 || sides < 2) return null;
+            
+            return { numDice, sides, modifier };
+        }
+
+        // The unified function that performs the roll and updates the UI
+        function performRoll(numDice, sides, modifier, rollName = null) {
+            
+            let individualRolls = [];
+            let sumOfRolls = 0;
+            
+            for (let i = 0; i < numDice; i++) {
+                const roll = Math.floor(Math.random() * sides) + 1;
+                individualRolls.push(roll);
+                sumOfRolls += roll;
+            }
+
+            const finalResult = sumOfRolls + modifier;
+            const sidesText = `d${sides}`;
+            const timestamp = new Date().toLocaleTimeString();
+            
+            playRollSound();
+
+            updateMainDisplay(finalResult, numDice, sidesText, individualRolls, modifier, rollName);
+            updateHistory(finalResult, numDice, sidesText, individualRolls, modifier, timestamp, rollName);
+        }
+
+        // Public function for standard dice buttons
+        window.rollStandardDice = function(sides) {
+            const numDice = parseInt(numDiceInput.value) || 1;
+            const modifier = parseInt(modifierInput.value) || 0;
+            if (numDice < 1) { numDiceInput.value = 1; return; }
+            
+            performRoll(numDice, sides, modifier);
+        }
+
+        // Public function for custom roll buttons
+        window.rollCustomDice = function(rollName, expression) {
+            const parsed = parseExpression(expression);
+            if (!parsed) {
+                console.error(`Invalid expression for custom roll '${rollName}'.`);
+                return;
+            }
+            performRoll(parsed.numDice, parsed.sides, parsed.modifier, rollName);
+        }
+
+        // --- UI Updates ---
+
+        function updateMainDisplay(finalResult, numDice, sidesText, individualRolls, modifier, rollName) {
+            // Build expression string, applying red/gold to individual d20 rolls
+            const rollsString = individualRolls.map(roll => {
+                if (sidesText === 'd20') {
+                    if (roll === 1) return `<span class="text-red-500 font-extrabold">${roll}</span>`;
+                    if (roll === 20) return `<span class="text-amber-400 font-extrabold">${roll}</span>`;
+                }
+                return roll;
+            }).join(' + ');
+            
+            const modifierString = modifier !== 0 ? (modifier >= 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`) : '';
+            const rollType = rollName ? rollName : `${numDice}${sidesText}`;
+            const rollExpression = `${rollType}: (${rollsString})${modifierString} = ${finalResult}`;
+
+            mainResult.textContent = finalResult;
+            rollDescriptor.innerHTML = rollExpression;
+            statusMessage.textContent = ''; 
+            
+            mainResult.classList.remove('text-red-500', 'text-amber-400', 'text-purple-400');
+
+            let hasCritFail = false;
+            let hasCritSuccess = false;
+
+            if (sidesText === 'd20') {
+                if (individualRolls.includes(1)) { hasCritFail = true; }
+                if (individualRolls.includes(20)) { hasCritSuccess = true; }
+            }
+
+            // Apply coloring to the final result based on any individual crit
+            if (hasCritFail) {
+                mainResult.classList.add('text-red-500');
+                statusMessage.classList.add('text-red-500');
+                statusMessage.textContent = 'Critical Failure Rolled!';
+            } else if (hasCritSuccess) {
+                mainResult.classList.add('text-amber-400');
+                statusMessage.classList.add('text-amber-400');
+                statusMessage.textContent = 'Critical Success Rolled!';
+            } else {
+                mainResult.classList.add('text-purple-400');
+            }
+
+            mainResult.style.fontSize = finalResult >= 1000 ? '3rem' : finalResult >= 100 ? '4rem' : '8rem';
+        }
+
+        function updateHistory(finalResult, numDice, sidesText, individualRolls, modifier, timestamp, rollName) {
+            initialHistoryMsg.classList.add('hidden');
+
+            const historyItem = document.createElement('div');
+            historyItem.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg bg-gray-700/50';
+
+            const expressionText = rollName || `${numDice}${sidesText}${modifier !== 0 ? (modifier > 0 ? ` +${modifier}` : modifier) : ''}`;
+            
+            // Format individual rolls with crit colors for history
+            const formattedIndividualRolls = individualRolls.map(roll => {
+                if (sidesText === 'd20') {
+                    if (roll === 1) return `<span class="text-red-500 font-extrabold">${roll}</span>`;
+                    if (roll === 20) return `<span class="text-amber-400 font-extrabold">${roll}</span>`;
+                }
+                return roll;
+            }).join(', ');
+            
+            const breakdownString = `Rolls: (${formattedIndividualRolls})${modifier !== 0 ? (modifier > 0 ? ` +${modifier}` : modifier) : ''}`;
+
+            let finalResultClass = 'text-white font-bold';
+            let critMessage = '';
+            
+            if (sidesText === 'd20') {
+                const hasCritFail = individualRolls.includes(1);
+                const hasCritSuccess = individualRolls.includes(20);
+
+                if (hasCritFail) { finalResultClass = 'text-red-500 font-extrabold'; critMessage = ' (1s rolled)'; }
+                if (hasCritSuccess && !hasCritFail) { finalResultClass = 'text-amber-400 font-extrabold'; critMessage = ' (20s rolled)'; }
+                if (hasCritFail && hasCritSuccess) { finalResultClass = 'text-red-500 font-extrabold'; critMessage = ' (1s & 20s rolled)'; } // Prioritize red
+            }
+
+            historyItem.innerHTML = `
+                <div class="flex items-center w-full sm:w-auto mb-1 sm:mb-0">
+                    <div class="flex-shrink-0 text-xs text-gray-400 pr-3">${timestamp}</div>
+                    <div class="text-base font-semibold ${rollName ? 'text-purple-400' : 'text-indigo-300'}">${expressionText}</div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="text-sm text-gray-400 flex-shrink-0">
+                        ${breakdownString}
+                    </div>
+                    <div class="${finalResultClass} text-2xl">
+                        = ${finalResult}
+                    </div>
+                    ${critMessage ? `<div class="text-sm text-gray-400 italic">${critMessage}</div>` : ''}
+                </div>
+            `;
+            
+            if (historyList.firstChild && historyList.firstChild.id !== 'initial-history-msg') {
+                historyList.insertBefore(historyItem, historyList.firstChild);
+            } else {
+                historyList.appendChild(historyItem);
+            }
+        }
+        
+        window.clearHistory = function() {
+            while (historyList.firstChild && historyList.firstChild.id !== 'initial-history-msg') {
+                historyList.removeChild(historyList.firstChild);
+            }
+            initialHistoryMsg.classList.remove('hidden');
+        }
+
+        // --- UI Rendering ---
+
+        function createDiceButton(sides) {
+            const button = document.createElement('button');
+            button.onclick = () => rollStandardDice(sides);
+            button.className = `dice-button bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-lg text-2xl w-full h-16 flex items-center justify-center relative shadow-lg`;
+            
+            button.innerHTML = `D${sides}`;
+            
+            if (sides === 20) {
+                button.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                button.classList.add('bg-purple-600', 'hover:bg-purple-500', 'text-3xl');
+            } else if (sides === 100) {
+                button.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                button.classList.add('bg-indigo-700', 'hover:bg-indigo-600');
+            }
+
+            return button;
+        }
+
+        function renderDiceButtons() {
+            DICE_TYPES.forEach(sides => {
+                const button = createDiceButton(sides);
+                diceContainer.appendChild(button);
+            });
+        }
+        
+        function renderCustomRollButtons() {
+            customRollsContainer.innerHTML = ''; // Clear existing buttons
+            const rolls = loadCustomRolls();
+
+            if (rolls.length === 0) {
+                customRollsContainer.innerHTML = '<p class="text-gray-400 text-sm italic py-2" id="no-custom-rolls">No custom rolls saved yet.</p>';
+                return;
+            }
+
+            rolls.forEach((roll, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative group flex-shrink-0';
+                
+                const button = document.createElement('button');
+                button.onclick = () => rollCustomDice(roll.name, roll.expression);
+                button.className = `custom-roll-button bg-gray-700 hover:bg-gray-600 text-purple-300 font-semibold text-sm py-2 px-3 rounded-full shadow-lg border border-purple-500`;
+                button.innerHTML = `<span class="pr-1">${roll.name}</span> <span class="text-xs text-gray-400">(${roll.expression})</span>`;
+
+                const deleteButton = document.createElement('button');
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation(); // Prevent the main roll button from triggering
+                    deleteCustomRoll(index);
+                };
+                deleteButton.className = 'absolute -top-1 -right-1 h-5 w-5 bg-red-700 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition duration-200';
+                deleteButton.innerHTML = '&#10005;'; // X mark
+
+                wrapper.appendChild(button);
+                wrapper.appendChild(deleteButton);
+                customRollsContainer.appendChild(wrapper);
+            });
+        }
+        
+        // --- Initialization ---
+        renderDiceButtons();
+        renderCustomRollButtons();
+    </script>
+</body>
+</html>
+
