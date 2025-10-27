@@ -1,877 +1,859 @@
-Try AI directly in your favorite apps … Use Gemini to generate drafts and refine content, plus get Gemini Pro with access to Google's next-gen AI for $19.99 $0 for 1 month
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Dice Roller</title>
+    <title>Cyber Dice Roller</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Fonts for Cyberpunk Aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono:wght+400;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for the RPG feel */
+        /* Custom Styles for Cyberpunk/Dark Theme */
+        :root {
+            --color-primary: #a855f7; /* Purple */
+            --color-accent: #06b6d4; /* Cyan */
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0d0d1a; /* Very dark background */
+            font-family: 'Space Mono', monospace;
+            background-color: #111827; /* Dark Gray BG */
+            color: #d1d5db; /* Light text (Standard Text Color) */
+            min-height: 100vh;
         }
-        .dice-button {
-            transition: all 0.15s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-            font-weight: bold;
+
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--color-accent);
         }
-        .dice-button.selected {
-            background-color: #8B5CF6; /* Violet 500 */
-            color: white;
-            transform: scale(1.05);
-            box-shadow: 0 6px 10px rgba(139, 92, 246, 0.6);
-            border: 2px solid #A78BFA; /* Violet 400 */
+
+        /* Neon Glow Effect for Buttons */
+        .dice-btn {
+            transition: all 0.1s ease;
+            box-shadow: 0 0 5px var(--color-primary), 0 0 10px var(--color-primary);
+            border: 1px solid var(--color-primary);
         }
-        /* Style for the Advantage/Disadvantage buttons */
-        .ad-btn {
-            background-color: #4B5563; /* Gray 600 */
-            color: #D1D5DB; /* Gray 300 */
-            font-weight: 600;
-            transition: background-color 0.2s, transform 0.1s;
+
+        .dice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary), 0 0 30px var(--color-primary);
         }
-        .ad-btn.active {
-            background-color: #10B981; /* Emerald 500 for Advantage */
-            color: white;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+
+        .dice-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 0 5px var(--color-primary);
         }
-        .ad-btn#disadvantage-btn.active {
-            background-color: #EF4444; /* Red 500 for Disadvantage */
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        
+        /* Highlighting for selected die button */
+        .dice-btn.selected {
+            background-color: #f0abfc; /* Light Purple */
+            color: #111827 !important;
+            box-shadow: 0 0 15px #f0abfc, 0 0 25px #f0abfc !important;
+            border: 2px solid #a855f7 !important;
         }
-        .roll-animation {
-            animation: pulse-result 0.5s ease-in-out;
+
+        /* Highlight box for results and history */
+        .data-panel {
+            background-color: #1f2937; /* Even darker blue-gray */
+            border: 1px solid #374151;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3); /* Soft cyan glow */
         }
-        @keyframes pulse-result {
-            0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(196, 181, 253, 0.7); } /* Violet 300 equivalent */
-            50% { transform: scale(1.02); opacity: 1; box-shadow: 0 0 10px 10px rgba(196, 181, 253, 0.5); }
-            100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(196, 181, 253, 0); }
+
+        /* History items glow on hover */
+        .history-item:hover {
+            background-color: #374151;
+            transition: background-color 0.2s;
         }
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+
+        /* Custom roll and input style */
+        .cyber-input {
+            background-color: #111827;
+            border: 2px solid var(--color-accent);
+            color: #f3f4f6;
+            transition: border-color 0.2s;
         }
-        .custom-roll-btn {
-            background-color: #374151; /* Gray 700 */
-            color: #d1d5db; /* Gray 300 */
-            border: 1px solid #4b5563;
+
+        .cyber-input:focus {
+            border-color: var(--color-primary);
+            outline: none;
+            box-shadow: 0 0 5px var(--color-primary);
         }
-        /* Style for the history panel, to make it scrollable on small screens */
-        #history-list {
-            max-height: 200px; /* Limit height for history */
-            overflow-y: auto;
-            scrollbar-width: thin; /* Firefox */
+        
+        /* Special style for HTML in breakdown */
+        /* RULE 1: Roll Name (<strong>) is now PURPLE */
+        #breakdownOutput strong {
+            color: var(--color-primary); 
+            font-weight: 700;
         }
-        #history-list::-webkit-scrollbar {
-            width: 8px;
+        /* RULE 2: Formula (<em>) is now NORMAL TEXT */
+        #breakdownOutput em {
+            color: currentColor; 
+            font-style: italic;
         }
-        #history-list::-webkit-scrollbar-thumb {
-            background-color: #4b5563; /* Gray 600 */
-            border-radius: 4px;
-        }
+
     </style>
 </head>
-<body class="bg-[#0d0d1a] min-h-screen flex items-start sm:items-center justify-center py-8">
+<body class="p-4 flex flex-col items-center">
 
-    <div id="dice-roller-app" class="w-full max-w-lg bg-gray-900 border border-gray-700 shadow-2xl rounded-2xl p-6 md:p-8 mx-4">
-        <h1 class="text-3xl font-extrabold text-indigo-300 text-center mb-6 tracking-wider">
-            <span class="text-violet-500">BJB</span> Roller
-        </h1>
+    <div class="w-full max-w-4xl space-y-8">
+        <!-- Header -->
+        <header class="text-center pt-4 pb-2">
+            <h1 class="text-5xl font-bold uppercase tracking-widest text-shadow-lg">
+                <span class="text-fuchsia-400">CYBER</span>-ROLL
+            </h1>
+            <p class="text-sm text-gray-400 mt-2">v1.6 | Named Compound Roll Breakdown</p>
+        </header>
 
-        <!-- Dice Selection -->
-        <div class="mb-6">
-            <h2 class="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-700 pb-2">Select Die Type (D<span id="current-sides">20</span>)</h2>
-            <div id="dice-selector" class="grid grid-cols-4 gap-3">
-                <!-- Data attributes for sides are used to select the die -->
-                <button data-sides="4" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D4</button>
-                <button data-sides="6" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D6</button>
-                <button data-sides="8" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D8</button>
-                <button data-sides="10" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D10</button>
-                <button data-sides="12" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D12</button>
-                <button data-sides="20" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3 selected">D20</button>
-                <button data-sides="100" class="dice-button bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg p-3">D100</button>
+        <!-- Main Rolling Section -->
+        <section class="data-panel p-6 rounded-xl">
+            <h2 class="text-2xl mb-4 font-bold border-b border-gray-700 pb-2 bg-clip-text text-fuchsia-400">Select Die (Y)</h2>
+
+            <!-- Dice Button Grid (now selectors) -->
+            <div id="diceSelectors" class="grid grid-cols-4 md:grid-cols-7 gap-3 mb-6">
+                <!-- d4 -->
+                <button id="d4" onclick="setDieSize(4)" class="dice-btn bg-purple-700/50 text-white font-bold py-3 rounded-lg text-xl">d4</button>
+                <!-- d6 -->
+                <button id="d6" onclick="setDieSize(6)" class="dice-btn bg-purple-700/50 text-white font-bold py-3 rounded-lg text-xl">d6</button>
+                <!-- d8 -->
+                <button id="d8" onclick="setDieSize(8)" class="dice-btn bg-purple-700/50 text-white font-bold py-3 rounded-lg text-xl">d8</button>
+                <!-- d10 -->
+                <button id="d10" onclick="setDieSize(10)" class="dice-btn bg-purple-700/50 text-white font-bold py-3 rounded-lg text-xl">d10</button>
+                <!-- d12 -->
+                <button id="d12" onclick="setDieSize(12)" class="dice-btn bg-purple-700/50 text-white font-bold py-3 rounded-lg text-xl">d12</button>
+                <!-- d20 (Critical) - Selected by default -->
+                <button id="d20" onclick="setDieSize(20)" class="dice-btn bg-cyan-700/50 text-white font-bold py-3 rounded-lg text-xl selected">d20</button>
+                <!-- d100 (Percentage) -->
+                <button id="d100" onclick="setDieSize(100)" class="dice-btn bg-fuchsia-700/50 text-white font-bold py-3 rounded-lg text-xl">d100</button>
             </div>
-        </div>
 
-        <!-- Quantity and Modifier Inputs -->
-        <div class="mb-8">
-            <div class="flex space-x-4">
-                <!-- Quantity Controls Column -->
-                <div class="flex-1">
-                    <label for="quantity" class="block text-sm font-medium text-gray-400 mb-1">Quantity</label>
-                    <input type="number" id="quantity" value="1" min="1" max="10"
-                           class="w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500 transition duration-150 text-xl font-mono text-center mb-2"
-                           inputmode="numeric">
-                    
-                    <!-- Quantity Control Buttons -->
-                    <div id="quantity-controls" class="flex justify-between space-x-2">
-                        <button id="decrement-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
-                            -1
-                        </button>
-                        <button id="reset-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
-                            Clear
-                        </button>
-                        <button id="increment-qty" class="qty-btn flex-1 py-2 text-white bg-gray-600 hover:bg-violet-700 rounded-lg text-lg font-bold transition duration-150 shadow-md">
-                            +1
-                        </button>
+            <h2 class="text-2xl mb-4 font-bold border-b border-gray-700 pb-2 text-cyan-400">Configure Roll (XdY+Z)</h2>
+
+            <!-- Inputs for X (Number of Dice) and Z (Modifier) -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-6 items-stretch sm:items-end">
+                <!-- Number of Dice (X) -->
+                <div class="flex-1 w-full">
+                    <label for="numDiceInput" class="text-sm text-gray-400 block mb-1">Number of Dice (X)</label>
+                    <input type="number" id="numDiceInput" value="1" min="1" class="cyber-input w-full p-3 rounded-lg" placeholder="1">
+                    <!-- Control Buttons for X -->
+                    <div class="flex justify-between mt-2 space-x-1">
+                        <button onclick="updateNumDice(-1)" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-fuchsia-400 font-bold"> - </button>
+                        <button onclick="resetNumDice()" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-cyan-400 font-bold"> Reset </button>
+                        <button onclick="updateNumDice(1)" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-fuchsia-400 font-bold"> + </button>
                     </div>
                 </div>
-
-                <!-- Modifier & A/D Controls Column -->
-                <div class="flex-1">
-                    <label for="modifier" class="block text-sm font-medium text-gray-400 mb-1">Modifier</label>
-                    <input type="number" id="modifier" value="0" min="-100" max="100"
-                           class="w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500 transition duration-150 text-xl font-mono text-center mb-2"
-                           inputmode="numeric">
-                    
-                    <!-- New Advantage/Disadvantage Buttons -->
-                    <div id="advantage-disadvantage-controls" class="flex justify-between space-x-2">
-                        <button id="advantage-btn" class="ad-btn flex-1 py-2 rounded-lg text-sm font-bold shadow-md">
-                            Advantage
-                        </button>
-                        <button id="disadvantage-btn" class="ad-btn flex-1 py-2 rounded-lg text-sm font-bold shadow-md">
-                            Disadvantage
-                        </button>
+                <!-- Die Size (Y) Display -->
+                <div class="flex-1 w-full text-center">
+                     <label class="text-sm text-gray-400 block mb-1">Selected Die Size (Y)</label>
+                     <div id="selectedDieDisplay" class="text-2xl font-bold font-orbitron text-fuchsia-400 p-3 border-2 border-dashed border-fuchsia-400/50 rounded-lg h-full flex items-center justify-center">d20</div>
+                </div>
+                <!-- Modifier (Z) -->
+                <div class="flex-1 w-full">
+                    <label for="modifierInput" class="text-sm text-gray-400 block mb-1">Modifier (Z)</label>
+                    <input type="number" id="modifierInput" value="0" class="cyber-input w-full p-3 rounded-lg" placeholder="0">
+                    <!-- Control Buttons for Z -->
+                    <div class="flex justify-between mt-2 space-x-1">
+                        <button onclick="updateModifier(-1)" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-fuchsia-400 font-bold"> - </button>
+                        <button onclick="resetModifier()" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-cyan-400 font-bold"> Reset </button>
+                        <button onclick="updateModifier(1)" class="dice-btn w-1/3 bg-gray-700/50 hover:bg-gray-600 py-1 rounded-lg text-sm transition text-fuchsia-400 font-bold"> + </button>
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <!-- Custom Roll Input & Macro Section -->
+            <h2 class="text-2xl mb-4 font-bold border-b border-gray-700 pb-2 text-cyan-400 mt-6">Custom Roll & Macros</h2>
+            
+            <!-- New: Macro Name Input -->
+            <div class="mb-3">
+                <label for="macroNameInput" class="text-sm text-gray-400 block mb-1">Macro Name (Optional)</label>
+                <input type="text" id="macroNameInput" class="cyber-input w-full p-3 rounded-lg" placeholder="e.g., Sneak Attack or Main Weapon">
+            </div>
 
-        <!-- Roll Button -->
-        <button id="roll-button" class="w-full py-4 text-2xl font-black bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition duration-200 uppercase tracking-widest shadow-lg hover:shadow-violet-500/50 mb-6">
-            Roll
-        </button>
+            <!-- Custom Roll Input & Instant Roll Button -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <input type="text" id="customRollInput" placeholder="e.g., 2d6 + 5 or 1d20 - 2" class="cyber-input flex-grow p-3 rounded-lg placeholder-gray-500">
+                <button onclick="handleAdvancedRoll()" class="dice-btn bg-purple-700/50 text-white font-bold py-3 px-6 rounded-lg whitespace-nowrap">Roll Now</button>
+            </div>
+            
+            <!-- Save as Macro Button -->
+            <div class="flex justify-end mb-6">
+                <button onclick="saveMacroFromInput()" id="saveMacroBtn" class="bg-gray-700 hover:bg-gray-600 text-xs text-white px-3 py-1 rounded-lg border border-gray-500 transition duration-150">
+                    Save as Macro
+                </button>
+            </div>
+
+            <!-- NEW: Relocated and Centered EXECUTE ROLL Button -->
+            <div class="flex justify-center mb-6 pt-4 border-t border-gray-700">
+                <!-- Removed inline onclick and added ID for event listener registration in JS -->
+                <button id="executeRollBtn" class="dice-btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-10 rounded-lg text-xl uppercase tracking-wider">
+                    EXECUTE ROLL
+                </button>
+            </div>
+
+            <!-- Saved Macros List -->
+            <h3 class="text-lg font-bold text-fuchsia-400 mt-6 mb-3 border-b border-gray-800 pb-1">Saved Macros (Toggle to compound roll)</h3>
+            <div id="macroList" class="space-y-2 max-h-40 overflow-y-auto">
+                <!-- Initial loading state -->
+                <p class="text-gray-500 text-center py-2" id="loadingMacros">Loading saved macros...</p>
+            </div>
+
+
+        </section>
 
         <!-- Results Display -->
-        <div id="results-panel" class="bg-gray-800 p-6 rounded-xl border-t-4 border-violet-500 transition duration-300 mb-8">
-            <h2 class="text-xl font-bold text-violet-400 mb-3 flex justify-between items-center">
-                Total Result
-                <span id="roll-formula" class="text-sm font-mono text-gray-400">1d20 + 0</span>
-            </h2>
-            <p id="roll-total" class="text-6xl font-extrabold text-indigo-300 text-center mb-3">
-                20
-            </p>
-            <p id="roll-details" class="text-sm text-gray-400 text-center font-mono">
-                Individual Rolls: (20)
-            </p>
-        </div>
+        <section class="data-panel p-6 rounded-xl">
+            <h2 class="text-2xl mb-4 font-bold border-b border-gray-700 pb-2 text-fuchsia-400">Current Result</h2>
+            <div id="resultOutput" class="text-center">
+                <p class="text-5xl font-extrabold text-cyan-400 font-orbitron tracking-wider">0</p>
+                <p id="breakdownOutput" class="text-md text-gray-400 mt-2 italic">Select a die and roll!</p>
+            </div>
+        </section>
 
         <!-- Roll History Section -->
-        <div class="mt-8 pt-4 border-t border-gray-700">
-            <h2 class="text-xl font-bold text-violet-400 mb-4 flex justify-between items-center">
-                Roll History
-                <button id="clear-history-btn" class="text-sm font-semibold bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg transition duration-200 shadow-md">
-                    Clear History
-                </button>
-            </h2>
-            <div id="history-list" class="space-y-2 p-2 bg-gray-950 rounded-lg">
-                <!-- Roll history items will be injected here -->
+        <section class="data-panel p-6 rounded-xl mb-8">
+            <h2 class="text-2xl mb-4 font-bold border-b border-gray-700 pb-2 text-cyan-400">Roll History</h2>
+            <div class="max-h-80 overflow-y-auto space-y-2" id="historyList">
+                <p class="text-gray-500 text-center py-4" id="loadingHistory">Loading history...</p>
             </div>
-        </div>
-        
-        <!-- Custom Rolls Section -->
-        <div class="mt-8 pt-4 border-t border-gray-700">
-            <h2 class="text-xl font-bold text-violet-400 mb-4 flex justify-between items-center">
-                Custom Rolls
-                <button id="add-custom-roll-btn" class="text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded-lg transition duration-200 shadow-md">
-                    + Add New
-                </button>
-            </h2>
-
-            <div id="custom-rolls-list" class="space-y-3">
-                <!-- Custom roll buttons will be injected here -->
-            </div>
-            <p id="user-id-display" class="text-xs text-gray-600 mt-4 text-center">User ID: N/A (Loading...)</p>
-        </div>
+            <p class="text-xs text-right text-gray-600 mt-4">User ID: <span id="userIdDisplay">N/A</span></p>
+        </section>
     </div>
 
-    <!-- Modal for Adding/Error Messages -->
-    <div id="app-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center p-4 z-50">
-        <div id="modal-content" class="bg-gray-800 rounded-xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
-            <!-- Modal content injected by JS -->
-        </div>
-    </div>
-
+    <!-- Firebase Imports and Setup Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, onSnapshot, collection, query, addDoc, deleteDoc, doc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =========================================================================
-        // --- IMPORTANT: EXTERNAL HOSTING CONFIGURATION ---
-        //
-        // This configuration was taken directly from your Firebase Project Settings.
-        // It enables the Custom Rolls feature when hosted on GitHub Pages.
-        // 
-        // =========================================================================
-        const STATIC_APP_ID = 'rpg-dice-roller-github-public'; // <-- STATIC ID FOR YOUR PROJECT
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // FIX: Corrected the reference to use __initial_auth_token instead of itself
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId = null;
+        let currentDieSize = 20; // Default selection
+        const MACROS_COLLECTION = 'custom_macros';
+        const HISTORY_COLLECTION = 'roll_history';
         
-        // Use the Canvas environment variables if they exist, otherwise use fallbacks for external hosting
-        const appId = typeof __app_id !== 'undefined' ? __app_id : STATIC_APP_ID;
+        // --- UPDATED COLOR CONSTANTS FOR BREAKDOWN ---
+        // Used for Roll Name (via CSS), Individual Dice Rolls in breakdown
+        const COLOR_PURPLE_PRIMARY = '#a855f7'; 
+        // Used for Final Roll Total in breakdown (and big number via JS)
+        const COLOR_CYAN_ACCENT = '#06b6d4';   
+        // STANDARD_COLOR: Uses 'currentColor' (the default light text color) for formula/operators
         
-        // PASTE YOUR COPIED CONFIGURATION HERE:
-        const EXTERNAL_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyA70MT-zQ_U1Z570vuuk1CGGCvC5CtW8uA",
-            authDomain: "bjbroller-b1e57.firebaseapp.com",
-            projectId: "bjbroller-b1e57",
-            storageBucket: "bjbroller-b1e57.appspot.com",
-            messagingSenderId: "1061781164673",
-            appId: "1:1061781164673:web:d7be4c193e8f9b2db9b380"
-        };
+        // --- Core Firebase Initialization and Authentication ---
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-                               ? JSON.parse(__firebase_config) 
-                               : EXTERNAL_FIREBASE_CONFIG;
-                               
-        const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
-        // =========================================================================
-
-
-        let db;
-        let auth;
-        let userId = 'N/A';
-        let CUSTOM_ROLLS_PATH = '';
-        const CUSTOM_ROLLS_COLLECTION = 'custom_rolls';
-        const HISTORY_STORAGE_KEY = 'rpgRollHistory';
-
-        // Set Firebase logging for debug
-        setLogLevel('Debug');
-        
-        // --- State Variables ---
-        let currentSides = 20;
-        let isAdvantage = false;
-        let isDisadvantage = false;
-
-        // --- DOM Elements ---
-        const diceSelector = document.getElementById('dice-selector');
-        const rollButton = document.getElementById('roll-button');
-        const quantityInput = document.getElementById('quantity');
-        const modifierInput = document.getElementById('modifier');
-        const rollTotal = document.getElementById('roll-total');
-        const rollDetails = document.getElementById('roll-details');
-        const rollFormula = document.getElementById('roll-formula');
-        const resultsPanel = document.getElementById('results-panel');
-        const currentSidesDisplay = document.getElementById('current-sides');
-        const customRollsList = document.getElementById('custom-rolls-list');
-        const addCustomRollBtn = document.getElementById('add-custom-roll-btn');
-        const appModal = document.getElementById('app-modal');
-        const modalContent = document.getElementById('modal-content');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const historyList = document.getElementById('history-list');
-        const clearHistoryBtn = document.getElementById('clear-history-btn');
-
-        // Quantity Control Buttons
-        const decrementQtyBtn = document.getElementById('decrement-qty');
-        const resetQtyBtn = document.getElementById('reset-qty');
-        const incrementQtyBtn = document.getElementById('increment-qty');
-
-        // Advantage/Disadvantage Buttons
-        const advantageBtn = document.getElementById('advantage-btn');
-        const disadvantageBtn = document.getElementById('disadvantage-btn');
-
-
-        // --- Custom Modal Functionality (Replaces alert/confirm) ---
-
-        /** Shows the custom roll creation modal. */
-        function showCustomRollModal() {
-            if (!db) {
-                showMessageModal("Persistence Unavailable", "Cannot add custom rolls. Firebase failed to initialize.");
-                return;
-            }
-            modalContent.innerHTML = `
-                <h3 class="text-2xl font-bold text-indigo-300 mb-4">Add Custom Roll</h3>
-                
-                <label for="roll-name-input" class="block text-sm font-medium text-gray-400 mb-1">Name (e.g., Fireball Damage)</label>
-                <input type="text" id="roll-name-input" placeholder="e.g., Attack Roll"
-                       class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500">
-
-                <label for="roll-formula-input" class="block text-sm font-medium text-gray-400 mb-1">Formula (e.g., 2d6+3, 4d6dl1)</label>
-                <input type="text" id="roll-formula-input" placeholder="e.g., 2d8+5"
-                       class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-violet-500 focus:border-violet-500">
-                <p class="text-xs text-gray-500 mb-4">Format: <span class="font-mono text-violet-300">[Qty]d[Sides]</span><span class="text-gray-400">[dl/dh][Count]</span><span class="font-mono text-violet-300">[+/-Mod]</span>. Example: 4d6dl1+3</p>
-
-                <div class="flex justify-end space-x-3">
-                    <button id="cancel-custom-roll-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
-                    <button id="save-custom-roll-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Save Roll</button>
-                </div>
-            `;
-            appModal.style.display = 'flex';
-
-            document.getElementById('cancel-custom-roll-btn').onclick = () => appModal.style.display = 'none';
-            document.getElementById('save-custom-roll-btn').onclick = saveCustomRoll;
-        }
-
-        /**
-         * Displays a simple message (used for errors/confirmation).
-         * @param {string} title
-         * @param {string} message
-         */
-        function showMessageModal(title, message) {
-            modalContent.innerHTML = `
-                <h3 class="text-2xl font-bold text-violet-400 mb-4">${title}</h3>
-                <p class="text-gray-300 mb-6">${message}</p>
-                <div class="flex justify-end">
-                    <button id="close-modal-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Close</button>
-                </div>
-            `;
-            appModal.style.display = 'flex';
-            document.getElementById('close-modal-btn').onclick = () => appModal.style.display = 'none';
-        }
-
-        // --- Roll History Management (Local Storage) ---
-
-        /** Loads roll history from local storage. */
-        function loadHistory() {
-            try {
-                const historyJson = localStorage.getItem(HISTORY_STORAGE_KEY);
-                return historyJson ? JSON.parse(historyJson) : [];
-            } catch (e) {
-                console.error("Error loading history from localStorage:", e);
-                return [];
-            }
-        }
-
-        /** Saves roll history to local storage. */
-        function saveHistory(history) {
-            try {
-                // Keep history limited to the last 20 rolls for performance
-                const limitedHistory = history.slice(0, 20); 
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
-            } catch (e) {
-                console.error("Error saving history to localStorage:", e);
-            }
-        }
-
-        /** Adds a new roll result to the history and re-renders. */
-        function addRollToHistory(rollData) {
-            const history = loadHistory();
-            
-            // Format time as HH:MM:SS
-            const now = new Date();
-            const timeString = now.toTimeString().split(' ')[0];
-
-            history.unshift({
-                id: Date.now(), // Unique ID for key
-                time: timeString,
-                formula: rollData.formula,
-                total: rollData.total,
-                details: rollData.details
-            });
-            
-            saveHistory(history);
-            renderHistory(history);
-        }
-
-        /** Renders the roll history list. */
-        function renderHistory(history) {
-            historyList.innerHTML = '';
-            if (history.length === 0) {
-                historyList.innerHTML = '<p class="text-gray-600 text-center py-4 text-sm">No rolls recorded yet.</p>';
-                return;
-            }
-
-            history.forEach(roll => {
-                const item = document.createElement('div');
-                item.className = 'flex flex-col p-2 bg-gray-800 rounded-md border border-gray-700 hover:bg-gray-700 transition duration-100';
-                item.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-violet-400 font-bold text-lg">${roll.total}</span>
-                        <span class="text-gray-500 text-xs">${roll.time}</span>
-                    </div>
-                    <p class="text-gray-400 text-sm font-mono mt-0.5">${roll.formula}</p>
-                    <p class="text-xs text-gray-500 mt-1">${roll.details}</p>
-                `;
-                historyList.appendChild(item);
-            });
-        }
-
-        // --- Roll Logic Functions (Synchronous) ---
-
-        /**
-         * Parses a roll string (e.g., "4d6dl1+5") into its components.
-         * @param {string} formula - The dice formula string.
-         * @returns {Object|null} An object containing roll components, or null if invalid.
-         */
-        function parseRollString(formula) {
-            // Regex: (Qty)d(Sides)(dl/dh)(Count)?([+-]Modifier)?
-            const regex = /(\d+)d(\d+)(?:(dl|dh)(\d+))?([+-]\d+)?/i;
-            const match = formula.match(regex);
-
-            if (!match) return null;
-
-            let [fullMatch, quantity, sides, dropType, dropCount, modifier] = match;
-
-            return {
-                quantity: parseInt(quantity),
-                sides: parseInt(sides),
-                dropType: dropType ? dropType.toLowerCase() : null,
-                dropCount: dropCount ? parseInt(dropCount) : 0,
-                modifier: modifier ? parseInt(modifier) : 0,
-                formula: fullMatch // Store the matched part of the string
-            };
-        }
-
-        /**
-         * Performs the actual dice roll, handling drop/keep logic.
-         * NOTE: This function is primarily used for custom rolls (N d X)
-         * @param {Object} rollData - Components from parseRollString.
-         */
-        function executeComplexRoll(rollData) {
-            const { quantity, sides, dropType, dropCount, modifier, formula } = rollData;
-
-            const rolls = [];
-            for (let i = 0; i < quantity; i++) {
-                rolls.push(Math.floor(Math.random() * sides) + 1);
-            }
-
-            // 1. Sort the rolls for drop/keep logic
-            const sortedRolls = [...rolls].sort((a, b) => a - b);
-            let keptRolls = [...rolls];
-            let droppedRolls = [];
-
-            if (dropCount > 0) {
-                if (dropType === 'dl') { // Drop Lowest (dl)
-                    droppedRolls = sortedRolls.slice(0, dropCount);
-                    keptRolls = sortedRolls.slice(dropCount);
-                } else if (dropType === 'dh') { // Drop Highest (dh)
-                    droppedRolls = sortedRolls.slice(quantity - dropCount);
-                    keptRolls = sortedRolls.slice(0, quantity - dropCount);
-                }
-            }
-
-            // 2. Calculate the total
-            const sumOfKeptRolls = keptRolls.reduce((sum, roll) => sum + roll, 0);
-            const total = sumOfKeptRolls + modifier;
-
-            // 3. Format result details
-            let detailsText = `Kept Rolls: (${keptRolls.join(', ')})`;
-            if (droppedRolls.length > 0) {
-                detailsText += ` | Dropped: (${droppedRolls.join(', ')})`;
-            }
-            if (modifier !== 0) {
-                detailsText += ` | ${modifier > 0 ? '+' : ''}${modifier} (Mod)`;
-            }
-            
-            // 4. Update the UI
-            rollTotal.textContent = total;
-            rollDetails.textContent = detailsText;
-            rollFormula.textContent = formula;
-
-            // 5. Add to history
-            addRollToHistory({ formula, total, details: detailsText });
-
-            // 6. Animation Feedback
-            resultsPanel.classList.remove('roll-animation');
-            void resultsPanel.offsetWidth;
-            resultsPanel.classList.add('roll-animation');
-        }
-
-        /** Handles the click on a custom roll button. */
-        function handleCustomRollClick(formula) {
-            // Disable Advantage/Disadvantage when using a custom roll
-            if (isAdvantage || isDisadvantage) {
-                toggleAdvantageDisadvantage('none');
-            }
-            const rollData = parseRollString(formula);
-            if (rollData) {
-                rollData.formula = formula; 
-                executeComplexRoll(rollData);
-            } else {
-                showMessageModal("Invalid Formula", `Could not parse the roll formula: ${formula}. Please check the format (e.g., 2d8+5 or 4d6dl1).`);
-            }
-        }
-
-        /** Updates the formula display based on standard roller inputs. */
-        function updateFormulaDisplay() {
-            const quantity = parseInt(quantityInput.value) || 1;
-            const modifier = parseInt(modifierInput.value) || 0;
-            let modString = '';
-            
-            if (modifier > 0) {
-                modString = ` + ${modifier}`;
-            } else if (modifier < 0) {
-                modString = ` ${modifier}`;
-            }
-
-            let prefix = '';
-            if (isAdvantage) {
-                prefix = ' (Advantage)';
-            } else if (isDisadvantage) {
-                prefix = ' (Disadvantage)';
-            }
-            
-            const qtyDisplay = (isAdvantage || isDisadvantage) ? 1 : quantity;
-
-            rollFormula.textContent = `${qtyDisplay}d${currentSides}${prefix}${modString}`;
-        }
-
-        /** Performs the standard dice roll, handling A/D state. */
-        function performStandardRoll() {
-            const quantity = parseInt(quantityInput.value) || 1;
-            const modifier = parseInt(modifierInput.value) || 0;
-
-            if (isAdvantage || isDisadvantage) {
-                // Advantage/Disadvantage Logic (forces quantity to 1 for the roll)
-                
-                if (quantity > 1) {
-                    showMessageModal("A/D Conflict", "Advantage/Disadvantage is active, so only the first die is rolled. Please disable A/D to roll multiple dice.");
-                    // Continue, but treat as a single roll with A/D
-                }
-                
-                // 1. Roll twice
-                const roll1 = Math.floor(Math.random() * currentSides) + 1;
-                const roll2 = Math.floor(Math.random() * currentSides) + 1;
-                
-                let keptRoll;
-                let rollType;
-                
-                if (isAdvantage) {
-                    keptRoll = Math.max(roll1, roll2);
-                    rollType = "Advantage";
-                } else { // isDisadvantage
-                    keptRoll = Math.min(roll1, roll2);
-                    rollType = "Disadvantage";
-                }
-
-                const total = keptRoll + modifier;
-
-                // Format strings for display and history
-                let modString = modifier !== 0 ? (modifier > 0 ? '+' : '') + modifier : '';
-                const formula = `1d${currentSides} (${rollType})${modString}`;
-                const detailsText = `Rolled: (${roll1}, ${roll2}) | Kept: (${keptRoll}) | Mod: ${modifier}`;
-                
-                // 2. Update UI and History
-                rollTotal.textContent = total;
-                rollDetails.textContent = detailsText;
-                rollFormula.textContent = formula;
-                addRollToHistory({ formula, total, details: detailsText });
-
-
-            } else {
-                // Standard Roll Logic (uses quantity input)
-                const formula = `${quantity}d${currentSides}${modifier >= 0 ? '+' : ''}${modifier}`;
-
-                const rollData = {
-                    quantity,
-                    sides: currentSides,
-                    dropType: null,
-                    dropCount: 0,
-                    modifier,
-                    formula: formula
-                };
-
-                executeComplexRoll(rollData);
-            }
-            
-            // 3. Animation Feedback (Applies to both paths)
-            resultsPanel.classList.remove('roll-animation');
-            void resultsPanel.offsetWidth;
-            resultsPanel.classList.add('roll-animation');
-        }
-
-        /**
- * Updates the quantity input based on button clicks.
- * @param {number|'clear'} action - Amount to change, or 'clear' to reset.
- */
-function updateQuantity(action) {
-    let currentQty = parseInt(quantityInput.value) || 0;
-    let newQty;
-
-    if (action === 'clear') {
-        newQty = 1; // Reset to a sensible minimum
-    } else {
-        newQty = currentQty + action;
-    }
-
-    // Enforce min/max (1 to 10 is set in the HTML)
-    newQty = Math.max(1, Math.min(10, newQty)); 
-
-    quantityInput.value = newQty;
-    
-    // Manually trigger the input event to update the formula display
-    updateFormulaDisplay();
-}
-
-
-        /**
-         * Toggles the Advantage/Disadvantage state and updates the buttons.
-         * @param {'advantage'|'disadvantage'|'none'} type - The button being toggled.
-         */
-        function toggleAdvantageDisadvantage(type) {
-            if (type === 'advantage') {
-                isAdvantage = !isAdvantage;
-                if (isAdvantage) isDisadvantage = false;
-            } else if (type === 'disadvantage') {
-                isDisadvantage = !isDisadvantage;
-                if (isDisadvantage) isAdvantage = false;
-            } else {
-                isAdvantage = false;
-                isDisadvantage = false;
-            }
-
-            // Update button styles
-            advantageBtn.classList.toggle('active', isAdvantage);
-            disadvantageBtn.classList.toggle('active', isDisadvantage);
-
-            // Update the formula display to reflect the A/D status
-            updateFormulaDisplay();
-        }
-
-        // --- Custom Roll Persistence (Firestore) ---
-
-        /** Saves a new custom roll to Firestore. */
-        async function saveCustomRoll() {
-            const nameInput = document.getElementById('roll-name-input');
-            const formulaInput = document.getElementById('roll-formula-input');
-            const name = nameInput.value.trim();
-            const formula = formulaInput.value.trim().toLowerCase();
-
-            // Check if Firebase was initialized using the EXTERNAL_FIREBASE_CONFIG
-            if (!db || !CUSTOM_ROLLS_PATH || !firebaseConfig.projectId) {
-                showMessageModal("Persistence Error", "Database is not initialized. Please ensure your Firebase configuration is correct.");
-                return;
-            }
-
-            if (!name || !formula) {
-                showMessageModal("Input Required", "Please provide both a name and a formula for the custom roll.");
-                return;
-            }
-
-            const rollData = parseRollString(formula);
-            if (!rollData) {
-                showMessageModal("Invalid Formula", "The formula could not be parsed. Please use the format [Qty]d[Sides][dl/dh][Count][+/-Mod].");
-                return;
-            }
-
-            try {
-                await addDoc(collection(db, CUSTOM_ROLLS_PATH), {
-                    name: name,
-                    formula: formula,
-                    createdAt: new Date()
-                });
-                appModal.style.display = 'none'; // Close modal on success
-            } catch (error) {
-                console.error("Error saving custom roll:", error);
-                showMessageModal("Save Error", "Failed to save the custom roll. Check console for details.");
-            }
-        }
-
-        /** Deletes a custom roll from Firestore. */
-        async function deleteCustomRoll(docId) {
-            if (!db || !CUSTOM_ROLLS_PATH) {
-                showMessageModal("Persistence Error", "Database is not initialized. Cannot delete roll.");
-                return;
-            }
-            try {
-                await deleteDoc(doc(db, CUSTOM_ROLLS_PATH, docId));
-            } catch (error) {
-                console.error("Error deleting custom roll:", error);
-                showMessageModal("Delete Error", "Failed to delete the custom roll. Check console for details.");
-            }
-        }
-        
-        /**
-         * Renders the list of custom rolls from the Firestore snapshot.
-         * @param {Array<Object>} rolls - Array of roll objects ({id, name, formula}).
-         */
-        function renderCustomRolls(rolls) {
-            customRollsList.innerHTML = ''; 
-            if (rolls.length === 0) {
-                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">No custom rolls saved yet. Add one!</p>';
-                return;
-            }
-
-            rolls.forEach(roll => {
-                const rollDiv = document.createElement('div');
-                rollDiv.className = 'flex items-center justify-between p-3 rounded-lg custom-roll-btn hover:bg-gray-600 transition duration-150 shadow-md';
-                
-                rollDiv.innerHTML = `
-                    <div class="flex flex-col text-left overflow-hidden">
-                        <span class="text-sm font-semibold text-white truncate">${roll.name}</span>
-                        <span class="text-xs font-mono text-gray-400">${roll.formula}</span>
-                    </div>
-                    <div class="flex space-x-2 items-center">
-                        <button class="roll-btn text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded-md" data-formula="${roll.formula}">
-                            ROLL
-                        </button>
-                        <button class="delete-btn text-sm text-gray-400 hover:text-violet-500 transition duration-150" data-id="${roll.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-                customRollsList.appendChild(rollDiv);
-
-                // Attach event listeners to the dynamically created buttons
-                rollDiv.querySelector('.roll-btn').addEventListener('click', (e) => {
-                    handleCustomRollClick(e.currentTarget.dataset.formula);
-                });
-                rollDiv.querySelector('.delete-btn').addEventListener('click', (e) => {
-                    // Quick modal confirmation before deleting
-                    const docId = e.currentTarget.dataset.id;
-                    showMessageModal("Confirm Delete", `Are you sure you want to delete the roll: "${roll.name}"?`);
-                    
-                    // Replace the generic 'Close' button with confirm/cancel
-                    modalContent.querySelector('#close-modal-btn').remove();
-                    
-                    const deleteConfirmDiv = document.createElement('div');
-                    deleteConfirmDiv.className = 'flex justify-end space-x-3';
-                    deleteConfirmDiv.innerHTML = `
-                        <button id="cancel-delete-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
-                        <button id="confirm-delete-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Delete</button>
-                    `;
-                    modalContent.appendChild(deleteConfirmDiv);
-
-                    document.getElementById('cancel-delete-btn').onclick = () => appModal.style.display = 'none';
-                    document.getElementById('confirm-delete-btn').onclick = () => {
-                        deleteCustomRoll(docId);
-                        appModal.style.display = 'none';
-                    };
-                });
-            });
-        }
-        
-        /** Initializes Firebase and sets up the live listener for custom rolls. */
-        async function initFirebaseAndRolls() {
-            // Check if a configuration was provided (either Canvas or external)
-            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId) {
-                console.log("Firebase not initialized: No configuration available.");
-                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Persistence not available. Standard roller is operational.</p>';
-                addCustomRollBtn.onclick = () => showMessageModal("Persistence Error", "Custom Rolls require a Firebase connection. Please update the configuration in the code.");
-                addCustomRollBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                userIdDisplay.textContent = `User ID: N/A (Persistence Disabled)`;
-                return;
-            }
-
-            customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Connecting to persistence...</p>';
-
+        const initFirebase = async () => {
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Check for the secure token. If it's missing, use anonymous sign-in.
-                if (__initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                // Sign in using custom token or anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
                 } else {
                     await signInAnonymously(auth);
                 }
-                
-                // Get the user ID (either from auth or a random one for unauth)
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                
-                // Construct the path for *private* user data
-                CUSTOM_ROLLS_PATH = `/artifacts/${appId}/users/${userId}/${CUSTOM_ROLLS_COLLECTION}`;
-                
-                userIdDisplay.textContent = `User ID: ${userId}`;
-                
-                // Set up the real-time listener *after* successful auth
-                const rollsQuery = query(collection(db, CUSTOM_ROLLS_PATH));
-                onSnapshot(rollsQuery, (snapshot) => {
-                    const rolls = [];
-                    snapshot.forEach((doc) => {
-                        rolls.push({ id: doc.id, ...doc.data() });
-                    });
-                    // Sort by createdAt time if available, otherwise by name
-                    rolls.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0) || a.name.localeCompare(b.name));
-                    
-                    renderCustomRolls(rolls); 
-                }, (error) => {
-                    console.error("Firestore Listener Error:", error);
-                    customRollsList.innerHTML = '<p class="text-violet-500 text-center py-4">Error loading custom rolls. Check console for rules/connection error.</p>';
+
+                // Wait for auth state to be confirmed
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('userIdDisplay').textContent = userId;
+                        console.log("Firebase Auth Ready. User ID:", userId);
+                        // Start loading persistence once authenticated
+                        loadHistory();
+                        loadMacros();
+                    } else {
+                        console.log("User logged out or not authenticated.");
+                    }
                 });
 
+            } catch (error) {
+                console.error("Firebase Initialization/Auth Error:", error);
+                document.getElementById('loadingHistory').textContent = 'Error loading history. See console.';
+            }
+        };
+
+        initFirebase();
+
+        // --- Dice Rolling Logic ---
+
+        /**
+         * Rolls a standard die (1 to max).
+         * @param {number} max - The max value of the die (e.g., 20 for d20).
+         * @returns {number} The roll result.
+         */
+        function rollDie(max) {
+            return Math.floor(Math.random() * max) + 1;
+        }
+
+        /**
+         * Rolls a specific number of dice and a modifier.
+         * @param {number} numDice - Number of dice (X).
+         * @param {number} dieSize - Size of the die (Y).
+         * @param {number} modifier - Modifier (Z).
+         * @returns {{total: number, breakdown: string}}
+         */
+        function rollAndCalculate(numDice, dieSize, modifier) {
+            let rolls = [];
+            let sum = 0;
+            for (let i = 0; i < numDice; i++) {
+                const roll = rollDie(dieSize);
+                rolls.push(roll);
+                sum += roll;
+            }
+
+            const total = sum + modifier;
+            
+            // --- UPDATED BREAKDOWN LOGIC ---
+            
+            // 1. Rolls Array: Uses PURPLE for the individual roll values
+            let breakdown = `<span style="color: ${COLOR_PURPLE_PRIMARY};">[${rolls.join(' + ')}]</span>`; 
+            
+            // 2. Modifier: The operator and number use 'currentColor' (Normal Text)
+            if (modifier !== 0) {
+                breakdown += ` <span style="color: currentColor;">${modifier >= 0 ? '+' : '-'} ${Math.abs(modifier)}</span>`;
+            }
+
+            // 3. Equals Sign: Uses 'currentColor' (Normal Text)
+            breakdown += ` <span style="color: currentColor;">=</span> `; 
+
+            // 4. Final Total: Uses CYAN for the final calculated number
+            breakdown += `<span style="color: ${COLOR_CYAN_ACCENT}; font-weight: bold;">${total}</span>`; 
+
+            return { total, breakdown, rolls, formulaSum: sum };
+        }
+
+        /**
+         * Parses a custom roll string (e.g., "2d6 + 5").
+         * @param {string} input - The user input string.
+         * @returns {{numDice: number, dieSize: number, modifier: number, success: boolean}}
+         */
+        function parseCustomRollString(input) {
+            // Trim and sanitize input
+            input = input.toLowerCase().replace(/\s/g, '');
+
+            // Regex to match: [X]d[Y] [+/-] [Z]
+            const match = input.match(/^(\d*)d(\d+)([\+\-]\d+)?$/);
+
+            if (!match) {
+                return { success: false };
+            }
+
+            const numDice = parseInt(match[1] || '1', 10);
+            const dieSize = parseInt(match[2], 10);
+            const modifier = match[3] ? parseInt(match[3], 10) : 0;
+
+            if (dieSize < 2 || numDice < 1) {
+                return { success: false };
+            }
+
+            return { numDice, dieSize, modifier, success: true };
+        }
+
+        // --- Helper functions for X and Z inputs ---
+
+        /**
+         * Updates the number of dice (X) input value.
+         * @param {number} delta - Amount to change the value by (+1 or -1).
+         */
+        window.updateNumDice = function(delta) {
+            const inputEl = document.getElementById('numDiceInput');
+            let currentValue = parseInt(inputEl.value, 10) || 0;
+            currentValue += delta;
+            // Enforce minimum of 1
+            if (currentValue < 1) {
+                currentValue = 1;
+            }
+            inputEl.value = currentValue;
+        }
+
+        /**
+         * Resets the number of dice (X) input value to 1.
+         */
+        window.resetNumDice = function() {
+            document.getElementById('numDiceInput').value = 1;
+        }
+
+        /**
+         * Updates the modifier (Z) input value.
+         * @param {number} delta - Amount to change the value by (+1 or -1).
+         */
+        window.updateModifier = function(delta) {
+            const inputEl = document.getElementById('modifierInput');
+            let currentValue = parseInt(inputEl.value, 10) || 0;
+            currentValue += delta;
+            // No minimum/maximum enforced for modifier
+            inputEl.value = currentValue;
+        }
+
+        /**
+         * Resets the modifier (Z) input value to 0.
+         */
+        window.resetModifier = function() {
+            document.getElementById('modifierInput').value = 0;
+        }
+
+        // --- UI and Persistence Functions ---
+
+        /**
+         * Saves a roll result to Firestore (for history).
+         * @param {number} total - Final roll result.
+         * @param {string} formula - The input formula (e.g., "d20" or "2d6+5").
+         * @param {string} breakdown - The detailed calculation (now includes HTML styling).
+         */
+        async function saveRoll(total, formula, breakdown) {
+            if (!userId || !db) {
+                console.warn("Firestore not ready or user not authenticated. Roll not saved.");
+                return;
+            }
+
+            // Using segmented collection reference for robustness
+            const historyRef = collection(db, 'artifacts', appId, 'users', userId, HISTORY_COLLECTION);
+            
+            try {
+                await addDoc(historyRef, {
+                    total: total,
+                    formula: formula,
+                    // Save the styled breakdown string
+                    breakdown: breakdown, 
+                    timestamp: serverTimestamp(),
+                });
+                // console.log("Roll saved successfully.");
             } catch (e) {
-                console.error("Firebase Initialization Failed:", e);
-                userIdDisplay.textContent = `User ID: N/A (Error)`;
-                customRollsList.innerHTML = '<p class="text-gray-500 text-center py-4">Persistence not available. Standard roller is operational.</p>';
-                addCustomRollBtn.onclick = () => showMessageModal("Persistence Error", "Custom Rolls require a successful database connection.");
-                addCustomRollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                console.error("Error adding history document: ", e);
             }
         }
 
-        // --- Event Listener Setup ---
+        /**
+         * Updates the UI with the latest roll result.
+         * @param {number|string} total - Final roll result or error message.
+         * @param {string} formula - The input formula.
+         * @param {string} breakdown - The detailed calculation/error detail (contains HTML for coloring).
+         */
+        function updateResultUI(total, formula, breakdown) {
+            const resultEl = document.getElementById('resultOutput').querySelector('p');
+            const breakdownEl = document.getElementById('breakdownOutput');
+
+            // Set content
+            resultEl.textContent = total;
+            
+            // For ALL rolls, we use innerHTML now because rollAndCalculate returns styled HTML
+            if (formula.includes('[COMPOUND]')) {
+                breakdownEl.innerHTML = breakdown;
+            } else {
+                 // The <strong> (Roll Name) is styled PURPLE by CSS.
+                 // The <em> (Formula) is explicitly set to currentColor (Normal Text) here.
+                 breakdownEl.innerHTML = `<strong>Standard Roll</strong> (<em style="color: currentColor;">${formula}</em>)<span style="color: currentColor;">:</span> ${breakdown}`;
+            }
+
+            // Reset classes
+            resultEl.classList.remove('text-green-400', 'text-red-400', 'text-cyan-400', 'text-fuchsia-400');
+
+            if (typeof total === 'string' || isNaN(total)) {
+                 resultEl.classList.add('text-red-400'); // Error color
+                 return;
+            }
+
+            // Apply critical/fumble color logic for d20 rolls ONLY when 1d20+0 and not compound
+            if (formula.toLowerCase() === '1d20+0') {
+                if (total === 20) {
+                    resultEl.classList.add('text-green-400'); // Critical Success
+                } else if (total === 1) {
+                    resultEl.classList.add('text-red-400'); // Critical Fumble
+                } else {
+                    resultEl.classList.add('text-cyan-400');
+                }
+            } else if (formula.includes('[COMPOUND]')) {
+                 resultEl.classList.add('text-fuchsia-400'); // Special color for compound rolls (Purple)
+            } else {
+                resultEl.classList.add('text-cyan-400'); // Default color (Cyan)
+            }
+        }
         
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- Custom Macro Functions ---
 
-            // --- 1. Synchronous UI Setup ---
+        /**
+         * Saves a roll formula as a macro to Firestore.
+         * @param {string} name - The user-defined name for the macro.
+         * @param {string} formula - The dice notation formula (e.g., "2d6+5").
+         */
+        async function saveMacro(name, formula) {
+            if (!userId || !db) {
+                console.warn("Firestore not ready. Cannot save macro.");
+                return;
+            }
+
+            const macroRef = collection(db, 'artifacts', appId, 'users', userId, MACROS_COLLECTION);
+            try {
+                await addDoc(macroRef, {
+                    name: name || formula, // Use formula as default name if none provided
+                    formula: formula,
+                    timestamp: serverTimestamp(),
+                });
+                document.getElementById('customRollInput').value = ''; // Clear formula input
+                document.getElementById('macroNameInput').value = ''; // Clear name input
+                console.log(`Macro saved: ${name || formula}`);
+            } catch (e) {
+                console.error("Error adding macro: ", e);
+                updateResultUI('ERROR', 'Macro Save Failed', 'Could not save macro to database.');
+            }
+        }
+
+        /**
+         * Deletes a macro from Firestore using a robust segmented path.
+         * @param {string} macroId - The ID of the document to delete.
+         */
+        window.deleteMacro = async function(macroId) {
+            if (!userId || !db) return;
+
+            // Use segmented path for robustness
+            const macroDocRef = doc(db, 
+                'artifacts', appId, 
+                'users', userId, 
+                MACROS_COLLECTION, macroId
+            );
+
+            try {
+                await deleteDoc(macroDocRef); 
+                console.log(`Macro deleted: ${macroId}`);
+            } catch (e) {
+                console.error("Error deleting macro: ", e);
+                updateResultUI('ERROR', 'Macro Deletion Failed', 'Could not delete macro. See console for details.');
+            }
+        }
+
+        /**
+         * Takes the current custom roll input, validates it, and saves it as a macro.
+         */
+        window.saveMacroFromInput = function() {
+            const input = document.getElementById('customRollInput').value;
+            const name = document.getElementById('macroNameInput').value.trim(); // Get name
+            const parsed = parseCustomRollString(input);
+
+            if (!parsed.success) {
+                updateResultUI('INVALID', 'Macro Save Failed', 'Invalid formula. Use XdY+Z format (e.g., 2d6+5 or d20).');
+                return;
+            }
             
-            // Initialize the standard roll display
-            rollTotal.textContent = 20;
-            rollDetails.textContent = "Individual Rolls: (20)";
-            updateFormulaDisplay();
-            
-            // Load and render history immediately
-            renderHistory(loadHistory());
+            // Normalize formula before saving (e.g., ensure it has +0 if no modifier)
+            const formula = `${parsed.numDice}d${parsed.dieSize}${parsed.modifier >= 0 ? '+' : ''}${parsed.modifier}`;
+            saveMacro(name, formula); // Pass name to saveMacro
+        }
 
-            // Standard Roll Button Click (Always available immediately)
-            rollButton.addEventListener('click', performStandardRoll);
 
-            // Die Selector Buttons (Always available immediately)
-            diceSelector.addEventListener('click', (event) => {
-                const button = event.target.closest('.dice-button');
-                if (!button) return;
+        /**
+         * Rolls a formula retrieved from a saved macro.
+         * @param {string} formula - The dice notation formula to roll.
+         */
+        window.rollSavedMacro = function(formula) {
+            const parsed = parseCustomRollString(formula);
 
-                document.querySelectorAll('.dice-button').forEach(btn => {
-                    btn.classList.remove('selected', 'bg-violet-500'); 
-                    btn.classList.add('bg-gray-700', 'text-gray-300');
+            if (!parsed.success) {
+                updateResultUI('ERROR', formula, 'Macro Roll Failed: Invalid stored format.');
+                return;
+            }
+
+            const { total, breakdown } = rollAndCalculate(parsed.numDice, parsed.dieSize, parsed.modifier);
+
+            // Use updateResultUI, passing the formula twice to get the non-compound formatting
+            updateResultUI(total, formula, breakdown); 
+            saveRoll(total, formula, breakdown); // Save to roll history
+        }
+
+
+        /**
+         * Renders the list of saved macros to the UI.
+         * @param {Array<Object>} macros - Array of macro objects from Firestore.
+         */
+        function renderMacros(macros) {
+            const macroListEl = document.getElementById('macroList');
+            // By clearing innerHTML, we remove the initial <p id="loadingMacros"> element.
+            macroListEl.innerHTML = ''; 
+
+            if (macros.length === 0) {
+                // If the snapshot has no documents, display the "No macros" message.
+                macroListEl.innerHTML = '<p class="text-gray-500 text-center py-2">No macros saved yet. Use the input field above.</p>';
+                return;
+            }
+
+            // If there are macros, populate the list.
+            macros.forEach(macro => {
+                const item = document.createElement('div');
+                // Added flex-nowrap to prevent button wrap on small screens
+                item.className = 'flex justify-between items-center p-2 bg-gray-800/50 rounded-lg border border-gray-700/70 hover:border-cyan-400 transition duration-150 flex-nowrap';
+                
+                // Name and formula for display
+                const macroName = macro.name || macro.formula;
+                const macroFormula = macro.formula;
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3 flex-shrink-0 min-w-0">
+                        <!-- Checkbox to include in EXECUTE ROLL. Data attributes store both formula and name. -->
+                        <input type="checkbox" 
+                               class="h-5 w-5 text-fuchsia-400 rounded border-gray-600 bg-gray-900 focus:ring-fuchsia-500 macro-toggle" 
+                               data-formula="${macroFormula}"
+                               data-macro-name="${macroName}">
+                        <!-- Macro Name and Formula Display -->
+                        <div class="flex flex-col sm:flex-row sm:space-x-2 items-start sm:items-baseline min-w-0">
+                            <!-- Name: Bold, Fuchsia-300 (Macro Name color) -->
+                            <!-- Note: The <strong> tag here will take its color from the #breakdownOutput strong CSS style (PURPLE) -->
+                            <strong class="text-md font-bold text-fuchsia-300 truncate">${macroName}</strong> 
+                            <!-- Formula: Italic, Gray-300 (Normal Text color) -->
+                            <em class="text-sm text-gray-300 italic font-mono truncate">${macroFormula}</em>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 flex-shrink-0 ml-4">
+                        <!-- Individual Roll Button -->
+                        <button onclick="rollSavedMacro('${macroFormula}')" 
+                                class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 text-sm rounded-md transition duration-150 shadow-md">
+                            Roll
+                        </button>
+                        <!-- Delete Button -->
+                        <button onclick="deleteMacro('${macro.id}')"
+                                class="text-red-400 hover:text-red-300 px-1 text-lg leading-none transition duration-150"
+                                title="Delete Macro">
+                            &times;
+                        </button>
+                    </div>
+                `;
+                macroListEl.appendChild(item);
+            });
+        }
+
+        /**
+         * Sets up the real-time listener for custom macros.
+         */
+        function loadMacros() {
+            if (!db || !userId) {
+                console.error("Database or User ID not available for macro loading.");
+                return;
+            }
+
+            const macroCollectionRef = collection(db, 'artifacts', appId, 'users', userId, MACROS_COLLECTION);
+            const macrosQuery = query(macroCollectionRef);
+
+            onSnapshot(macrosQuery, (snapshot) => {
+                const macros = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    macros.push({ ...data, id: doc.id });
                 });
 
-                currentSides = parseInt(button.dataset.sides);
-                button.classList.add('selected');
-                currentSidesDisplay.textContent = currentSides;
-                updateFormulaDisplay();
+                // Sort by timestamp (newest first)
+                macros.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+                renderMacros(macros);
+            }, (error) => {
+                console.error("Error listening to macro changes:", error);
+                document.getElementById('macroList').innerHTML = '<p class="text-gray-500 text-center py-2">Error loading macros. Check connection.</p>';
             });
+        }
 
-            // Input Change Handlers
-            quantityInput.addEventListener('input', updateFormulaDisplay);
-            modifierInput.addEventListener('input', updateFormulaDisplay);
+        // --- Core Functionality ---
 
-            // Quantity Control Buttons
-            decrementQtyBtn.addEventListener('click', () => updateQuantity(-1));
-            resetQtyBtn.addEventListener('click', () => updateQuantity('clear'));
-            incrementQtyBtn.addEventListener('click', () => updateQuantity(1));
+        /**
+         * Sets the currently selected die size and updates the UI highlighting.
+         * @param {number} size - The max value of the die (Y).
+         */
+        window.setDieSize = function(size) {
+            currentDieSize = size;
+            document.getElementById('selectedDieDisplay').textContent = `d${size}`;
+
+            // Remove 'selected' class from all buttons
+            const buttons = document.querySelectorAll('#diceSelectors .dice-btn');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+
+            // Add 'selected' class to the clicked button
+            const selectedBtn = document.getElementById(`d${size}`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('selected');
+            }
+        }
+
+        /**
+         * Handles the standard roll using the selected die size (Y) and input X and Z values,
+         * and adds results from any checked macros.
+         */
+        window.handleStandardRoll = function() {
+            let combinedTotal = 0;
+            let combinedBreakdown = [];
+            let fullFormula = ''; 
+            const toggledMacros = document.querySelectorAll('.macro-toggle:checked');
+
+            // 1. Perform Standard Roll (XdY+Z)
+            const numDice = parseInt(document.getElementById('numDiceInput').value, 10) || 1;
+            const modifier = parseInt(document.getElementById('modifierInput').value, 10) || 0;
+            const dieSize = currentDieSize;
+
+            if (numDice < 1 || dieSize < 2) {
+                updateResultUI('INVALID', 'N/A', 'Please ensure Number of Dice (X) is 1 or more.');
+                return;
+            }
+
+            const standardFormula = `${numDice}d${dieSize}${modifier >= 0 ? '+' : ''}${modifier}`;
+            const standardRoll = rollAndCalculate(numDice, dieSize, modifier);
+
+            combinedTotal += standardRoll.total;
+            fullFormula = standardFormula; // Start with standard formula
             
-            // Advantage/Disadvantage Control Buttons
-            advantageBtn.addEventListener('click', () => toggleAdvantageDisadvantage('advantage'));
-            disadvantageBtn.addEventListener('click', () => toggleAdvantageDisadvantage('disadvantage'));
+            // Generate detailed breakdown string for standard roll
+            let standardRollBreakdownPart;
+            if (toggledMacros.length > 0) {
+                // For compound rolls, use rich HTML breakdown for the first part
+                // <strong> (Roll Name) is Purple via CSS, <em> (Formula) is Normal Text via inline style.
+                standardRollBreakdownPart = `<strong>Standard Roll</strong> (<em style="color: currentColor;">${standardFormula}</em>)<span style="color: currentColor;">:</span> ${standardRoll.breakdown}`;
+            } else {
+                // For non-compound rolls, use the breakdown directly (which now includes HTML)
+                standardRollBreakdownPart = standardRoll.breakdown;
+            }
+
+            combinedBreakdown.push(standardRollBreakdownPart);
 
 
-            // Custom Roll Button
-            addCustomRollBtn.addEventListener('click', showCustomRollModal);
+            // 2. Process Toggled Macros
+            toggledMacros.forEach((checkbox) => {
+                const macroFormula = checkbox.getAttribute('data-formula');
+                const macroName = checkbox.getAttribute('data-macro-name'); // Retrieve the macro name
+                const parsed = parseCustomRollString(macroFormula);
 
-            // Clear History Button
-            clearHistoryBtn.addEventListener('click', () => {
-                showMessageModal("Confirm Clear History", "Are you sure you want to clear all roll history for this browser?");
-                
-                // Replace the generic 'Close' button with confirm/cancel
-                modalContent.querySelector('#close-modal-btn').remove();
-                
-                const clearConfirmDiv = document.createElement('div');
-                clearConfirmDiv.className = 'flex justify-end space-x-3';
-                clearConfirmDiv.innerHTML = `
-                    <button id="cancel-clear-btn" class="py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-150">Cancel</button>
-                    <button id="confirm-clear-btn" class="py-2 px-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition duration-150">Clear</button>
-                `;
-                modalContent.appendChild(clearConfirmDiv);
+                if (parsed.success) {
+                    const macroRoll = rollAndCalculate(parsed.numDice, parsed.dieSize, parsed.modifier);
+                    
+                    combinedTotal += macroRoll.total;
+                    fullFormula += ` + (${macroFormula})`; // Append macro formula to the overall formula
+                    
+                    // Generate detailed breakdown string for macro roll
+                    // <strong> (Roll Name) is Purple via CSS, <em> (Formula) is Normal Text via inline style.
+                    const macroBreakdownPart = `<strong>${macroName}</strong> (<em style="color: currentColor;">${macroFormula}</em>)<span style="color: currentColor;">:</span> ${macroRoll.breakdown}`;
+                    combinedBreakdown.push(macroBreakdownPart);
 
-                document.getElementById('cancel-clear-btn').onclick = () => appModal.style.display = 'none';
-                document.getElementById('confirm-clear-btn').onclick = () => {
-                    localStorage.removeItem(HISTORY_STORAGE_KEY);
-                    renderHistory([]);
-                    appModal.style.display = 'none';
-                };
+                } else {
+                    console.error("Invalid macro formula skipped:", macroFormula);
+                }
             });
+
+            // 3. Update UI and Save History
+            
+            const historyFormula = fullFormula + (toggledMacros.length > 0 ? ' [COMPOUND]' : '');
+            // Join parts with pipe only if compound roll is happening
+            // Ensure the pipe separator uses the standard text color
+            const finalBreakdown = combinedBreakdown.length > 1 ? combinedBreakdown.join(' <span style="color: currentColor;">|</span> ') : combinedBreakdown[0];
+
+            updateResultUI(combinedTotal, historyFormula, finalBreakdown);
+            saveRoll(combinedTotal, historyFormula, finalBreakdown);
+        }
+
+        /**
+         * Main function for the custom roll input (XdY+Z).
+         */
+        window.handleAdvancedRoll = function() {
+            const input = document.getElementById('customRollInput').value;
+            const parsed = parseCustomRollString(input);
+
+            if (!parsed.success) {
+                updateResultUI('INVALID', input, 'Invalid format. Use XdY+Z (e.g., 2d6+5 or d20).');
+                return;
+            }
+
+            const formula = `${parsed.numDice}d${parsed.dieSize}${parsed.modifier >= 0 ? '+' : ''}${parsed.modifier}`;
+            const { total, breakdown } = rollAndCalculate(parsed.numDice, parsed.dieSize, parsed.modifier);
+
+            updateResultUI(total, formula, breakdown);
+            saveRoll(total, formula, breakdown);
+        }
+
+
+        /**
+         * Sets up the real-time listener for roll history.
+         */
+        function loadHistory() {
+            if (!db || !userId) {
+                console.error("Database or User ID not available for history loading.");
+                return;
+            }
+
+            const historyCollectionRef = collection(db, 'artifacts', appId, 'users', userId, HISTORY_COLLECTION);
+            const rollsQuery = query(historyCollectionRef);
+
+            // Real-time listener
+            onSnapshot(rollsQuery, (snapshot) => {
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = ''; // Clear existing list
+
+                const rolls = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Ensure timestamp exists before using toISOString (it might be null if serverTimestamp is pending)
+                    const dateStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString() : '...';
+                    rolls.push({ ...data, dateStr, id: doc.id });
+                });
+
+                // Sort the history by timestamp (newest first)
+                rolls.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+                if (rolls.length === 0) {
+                    historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No rolls recorded yet.</p>';
+                    return;
+                }
+
+                rolls.forEach(roll => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item p-3 rounded-lg border border-gray-700 hover:border-fuchsia-400 cursor-pointer';
+
+                    // Apply color logic: Critical, Fumble, Compound, or Default
+                    let totalClass = 'text-cyan-400';
+                    if (roll.formula.includes('[COMPOUND]')) {
+                         totalClass = 'text-fuchsia-400';
+                    } else if (roll.formula.toLowerCase() === '1d20+0') {
+                        if (roll.total === 20) {
+                            totalClass = 'text-green-400';
+                        } else if (roll.total === 1) {
+                            totalClass = 'text-red-400';
+                        }
+                    }
+
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold ${totalClass}">${roll.total}</span>
+                            <span class="text-sm text-fuchsia-400 font-orbitron">${roll.formula.replace(' [COMPOUND]', '')}</span>
+                        </div>
+                        <!-- NOTE: We use innerHTML here to allow the stored breakdown (which contains the styled spans) to render -->
+                        <p class="text-xs text-gray-400 mt-1 truncate">${roll.breakdown}</p>
+                        <p class="text-xs text-gray-500 mt-1">${roll.dateStr}</p>
+                    `;
+                    historyList.appendChild(item);
+                });
+
+            }, (error) => {
+                console.error("Error listening to history changes:", error);
+                document.getElementById('loadingHistory').textContent = 'Error loading history. Check connection.';
+            });
+        }
         
-            // --- 2. Asynchronous Persistence Setup ---
-            initFirebaseAndRolls();
-        });
+        // Initialize the default selection highlight and add event listeners on window load
+        window.onload = () => {
+             // Delay to ensure DOM is fully rendered
+             setTimeout(() => {
+                const defaultButton = document.getElementById(`d${currentDieSize}`);
+                if (defaultButton) {
+                    defaultButton.classList.add('selected');
+                }
+                
+                // FIX: Attach event listener for the "EXECUTE ROLL" button
+                const executeRollBtn = document.getElementById('executeRollBtn');
+                if(executeRollBtn) {
+                    executeRollBtn.addEventListener('click', window.handleStandardRoll);
+                }
+             }, 100);
+        };
     </script>
 </body>
 </html>
+
 
 
