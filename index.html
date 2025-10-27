@@ -101,7 +101,7 @@
             <h1 class="text-5xl font-bold uppercase tracking-widest text-shadow-lg">
                 <span class="text-fuchsia-400">CYBER</span>-ROLL
             </h1>
-            <p class="text-sm text-gray-400 mt-2">v1.6 | Named Compound Roll Breakdown</p>
+            <p class="text-sm text-gray-400 mt-2">v1.7 | Dedicated Standard/Custom Roll Buttons</p>
         </header>
 
         <!-- Main Rolling Section -->
@@ -159,10 +159,10 @@
                 </div>
             </div>
             
-            <!-- Relocated and Centered EXECUTE ROLL Button for XdY+Z + Macros -->
+            <!-- Dedicated EXECUTE STANDARD ROLL Button for XdY+Z -->
             <div class="flex justify-center mb-6 pt-4 border-t border-gray-700">
                 <button id="executeStandardRollBtn" class="dice-btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-10 rounded-lg text-xl uppercase tracking-wider">
-                    EXECUTE ROLL (XdY+Z + Macros)
+                    EXECUTE STANDARD ROLL (XdY+Z)
                 </button>
             </div>
             
@@ -196,7 +196,7 @@
                 <p class="text-gray-500 text-center py-2" id="loadingMacros">Loading saved macros...</p>
             </div>
 
-            <!-- NEW: Dedicated Button for Custom Roll Input and Checked Macros -->
+            <!-- Dedicated Button for Custom Roll Input and Checked Macros -->
             <div class="flex justify-center mt-6 pt-4 border-t border-gray-700">
                 <button id="executeMacroRollBtn" class="dice-btn bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-3 px-10 rounded-lg text-xl uppercase tracking-wider">
                     EXECUTE CUSTOM & MACRO ROLL
@@ -457,7 +457,8 @@
                  // Standard or simple macro roll: Wrap breakdown with roll name and formula
                  // The <strong> (Roll Name) is styled PURPLE by CSS.
                  // The <em> (Formula) is explicitly set to currentColor (Normal Text) here.
-                 breakdownEl.innerHTML = `<strong>Standard Roll</strong> (<em style="color: currentColor;">${formula}</em>)<span style="color: currentColor;">:</span> ${breakdown}`;
+                 const name = formula.includes('STANDARD') ? 'Standard Roll' : 'Macro Roll';
+                 breakdownEl.innerHTML = `<strong>${name}</strong> (<em style="color: currentColor;">${formula}</em>)<span style="color: currentColor;">:</span> ${breakdown}`;
             }
 
             // Reset classes
@@ -469,11 +470,18 @@
             }
 
             // Apply critical/fumble color logic for 1d20 rolls ONLY when not a compound roll
-            if (formula.toLowerCase() === '1d20+0') {
-                if (total === 20) {
-                    resultEl.classList.add('text-green-400'); // Critical Success
-                } else if (total === 1) {
-                    resultEl.classList.add('text-red-400'); // Critical Fumble
+            if (formula.toLowerCase().startsWith('1d20')) {
+                // Check if it's a 1d20 roll and parse the dice sum from the breakdown
+                const match = breakdown.match(/\[([\d\s\+]+)\]/);
+                if(match) {
+                    const rawRoll = parseInt(match[1].split('+')[0].trim(), 10);
+                    if (rawRoll === 20) {
+                        resultEl.classList.add('text-green-400'); // Critical Success
+                    } else if (rawRoll === 1) {
+                        resultEl.classList.add('text-red-400'); // Critical Fumble
+                    } else {
+                        resultEl.classList.add('text-cyan-400');
+                    }
                 } else {
                     resultEl.classList.add('text-cyan-400');
                 }
@@ -569,8 +577,8 @@
 
             const { total, breakdown } = rollAndCalculate(parsed.numDice, parsed.dieSize, parsed.modifier);
 
-            // Use updateResultUI, passing the formula twice to get the non-compound formatting
-            updateResultUI(total, formula, breakdown); 
+            // Use updateResultUI, passing a distinct formula tag for single macro rolls
+            updateResultUI(total, `MACRO: ${formula}`, breakdown); 
             saveRoll(total, formula, breakdown); // Save to roll history
         }
 
@@ -686,15 +694,12 @@
         }
 
         /**
-         * Handles the standard roll using the selected die size (Y) and input X and Z values,
-         * and adds results from any checked macros. (Called by the top EXECUTE ROLL button).
+         * Handles the standard roll using the selected die size (Y) and input X and Z values.
+         * This function now ONLY rolls the XdY+Z configured in the top section.
+         * (Formerly handleStandardCompoundRoll)
          */
-        window.handleStandardCompoundRoll = function() {
-            let combinedTotal = 0;
-            let combinedBreakdown = [];
-            let fullFormula = ''; 
-            const toggledMacros = document.querySelectorAll('.macro-toggle:checked');
-
+        window.handleStandardRoll = function() { // RENAMED FUNCTION & SIMPLIFIED LOGIC
+            
             // 1. Perform Standard Roll (XdY+Z)
             const numDice = parseInt(document.getElementById('numDiceInput').value, 10) || 1;
             const modifier = parseInt(document.getElementById('modifierInput').value, 10) || 0;
@@ -705,55 +710,16 @@
                 return;
             }
 
-            const standardFormula = `${numDice}d${dieSize}${modifier >= 0 ? '+' : ''}${modifier}`;
-            const standardRoll = rollAndCalculate(numDice, dieSize, modifier);
+            const formula = `${numDice}d${dieSize}${modifier >= 0 ? '+' : ''}${modifier}`;
+            const rollResult = rollAndCalculate(numDice, dieSize, modifier);
 
-            combinedTotal += standardRoll.total;
-            fullFormula = standardFormula; // Start with standard formula
+            // 2. Update UI and Save History (Single Roll Logic)
             
-            // Generate detailed breakdown string for standard roll
-            let standardRollBreakdownPart;
-            if (toggledMacros.length > 0) {
-                // For compound rolls, use rich HTML breakdown for the first part
-                // <strong> (Roll Name) is Purple via CSS, <em> (Formula) is Normal Text via inline style.
-                standardRollBreakdownPart = `<strong>Standard Roll</strong> (<em style="color: currentColor;">${standardFormula}</em>)<span style="color: currentColor;">:</span> ${standardRoll.breakdown}`;
-            } else {
-                // For non-compound rolls, use the breakdown directly (which now includes HTML)
-                standardRollBreakdownPart = standardRoll.breakdown;
-            }
+            const total = rollResult.total;
+            const breakdown = rollResult.breakdown;
 
-            combinedBreakdown.push(standardRollBreakdownPart);
-
-
-            // 2. Process Toggled Macros
-            toggledMacros.forEach((checkbox) => {
-                const macroFormula = checkbox.getAttribute('data-formula');
-                const macroName = checkbox.getAttribute('data-macro-name'); 
-                const parsed = parseCustomRollString(macroFormula);
-
-                if (parsed.success) {
-                    const macroRoll = rollAndCalculate(parsed.numDice, parsed.dieSize, parsed.modifier);
-                    
-                    fullFormula += ` + (${macroFormula})`; // Append macro formula to the overall formula
-                    combinedTotal += macroRoll.total;
-                    
-                    // Generate detailed breakdown string for macro roll
-                    const macroBreakdownPart = `<strong>${macroName}</strong> (<em style="color: currentColor;">${macroFormula}</em>)<span style="color: currentColor;">:</span> ${macroRoll.breakdown}`;
-                    combinedBreakdown.push(macroBreakdownPart);
-
-                } else {
-                    console.error("Invalid macro formula skipped:", macroFormula);
-                }
-            });
-
-            // 3. Update UI and Save History
-            
-            const historyFormula = fullFormula + (toggledMacros.length > 0 ? ' [COMPOUND]' : '');
-            // Join parts with pipe only if compound roll is happening
-            const finalBreakdown = combinedBreakdown.length > 1 ? combinedBreakdown.join(' <span style="color: currentColor;">|</span> ') : combinedBreakdown[0];
-
-            updateResultUI(combinedTotal, historyFormula, finalBreakdown);
-            saveRoll(combinedTotal, historyFormula, finalBreakdown);
+            updateResultUI(total, `STANDARD: ${formula}`, breakdown); // Added "STANDARD: " tag for UI clarity
+            saveRoll(total, formula, breakdown);
         }
         
         /**
@@ -831,7 +797,8 @@
             const finalBreakdown = combinedBreakdown.join(' <span style="color: currentColor;">|</span> ');
             
             updateResultUI(combinedTotal, historyFormula, finalBreakdown);
-            saveRoll(combinedTotal, historyFormula, finalBreakdown);
+            // Save the formula without the [COMPOUND] tag, but keep the breakdown
+            saveRoll(combinedTotal, fullFormula, finalBreakdown); 
         }
 
 
@@ -900,12 +867,10 @@
                     let totalClass = 'text-cyan-400';
                     if (roll.formula.includes('[COMPOUND]')) {
                          totalClass = 'text-fuchsia-400';
-                    } else if (roll.formula.toLowerCase() === '1d20+0') {
-                        if (roll.total === 20) {
-                            totalClass = 'text-green-400';
-                        } else if (roll.total === 1) {
-                            totalClass = 'text-red-400';
-                        }
+                    } else if (roll.formula.toLowerCase().startsWith('1d20')) {
+                        // We can't rely on the stored total for critical/fumble for simple rolls, 
+                        // so we just rely on the formula including "1d20" and apply default colors.
+                        totalClass = 'text-cyan-400'; 
                     }
 
                     item.innerHTML = `
@@ -935,10 +900,10 @@
                     defaultButton.classList.add('selected');
                 }
                 
-                // Attach event listener for the top "EXECUTE ROLL (XdY+Z + Macros)" button
+                // Attach event listener for the top "EXECUTE STANDARD ROLL (XdY+Z)" button
                 const executeStandardRollBtn = document.getElementById('executeStandardRollBtn');
                 if(executeStandardRollBtn) {
-                    executeStandardRollBtn.addEventListener('click', window.handleStandardCompoundRoll);
+                    executeStandardRollBtn.addEventListener('click', window.handleStandardRoll); // Mapped to the new dedicated function
                 }
                 
                 // Attach event listener for the new "EXECUTE CUSTOM & MACRO ROLL" button
@@ -951,4 +916,3 @@
     </script>
 </body>
 </html>
-
