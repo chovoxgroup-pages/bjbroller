@@ -1,11 +1,10 @@
 {
-  "name": "BJB Roller",
-  "short_name": "BJB Roller",
-  "description": "An RPG Dice Roller with custom rolls and history.",
-  "start_url": "./",
+  "name": "RPG Dice Roller",
+  "short_name": "Dice Roller",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#4f46e5",
+  "background_color": "#050505",
+  "theme_color": "#111111",
   "icons": [
     {
       "src": "d20-icon-192.png",
